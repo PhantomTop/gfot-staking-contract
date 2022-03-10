@@ -1,0 +1,22 @@
+https://cosmwasm.tools/
+
+with CW20 mintable, burnable token
+
+query: 
+{
+  "token_info": {}
+}
+
+execute: 
+{
+  "burn": {
+    "amount": "100"
+  }
+}
+
+{
+  "mint": {
+    "recipient": "juno15fg4zvl8xgj3txslr56ztnyspf3jc7n9j44vhz",
+    "amount": "200"
+  }
+}

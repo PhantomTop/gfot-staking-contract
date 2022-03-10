@@ -11,14 +11,16 @@ PARAM=$1
 # FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
 # BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
 
+
 ##########################################################################################
 
 NODE="--node https://rpc.juno.giansalex.dev:443"
 #NODE="--node https://rpc.uni.junomint.com:443"
 CHAIN_ID=uni-2
 DENOM="ujunox"
-FOT_ADDRESS="juno1xvg3uhqqjcls277jkdfgfnve29r537jme95dgnu3xw485q6ykkus9470ah"
+#FOT_ADDRESS="juno1xvg3uhqqjcls277jkdfgfnve29r537jme95dgnu3xw485q6ykkus9470ah"
 BFOT_ADDRESS="juno1f69f4902tgkuthp26ghwjwta9e5ulqdelcmdxp8acevw89w0028sflaunv"
+GFOT_ADDRESS="juno1zgxeqhfp0eu5avayc2emqmesxzcpercq0s6nw5s0mh7srkyddevs5sdkcg"
 
 ##########################################################################################
 #not depends
@@ -26,7 +28,7 @@ NODECHAIN=" $NODE --chain-id $CHAIN_ID"
 TXFLAG=" $NODECHAIN --gas-prices 0.03$DENOM --gas auto --gas-adjustment 1.3"
 WALLET="--from workshop"
 
-WASMFILE="artifacts/fotburn.wasm"
+WASMFILE="artifacts/bfotburn.wasm"
 
 FILE_UPLOADHASH="uploadtx.txt"
 FILE_CONTRACT_ADDR="contractaddr.txt"
@@ -89,7 +91,7 @@ RustBuild() {
     RUSTFLAGS='-C link-arg=-s' cargo wasm
 
     mkdir artifacts
-    cp target/wasm32-unknown-unknown/release/fotburn.wasm $WASMFILE
+    cp target/wasm32-unknown-unknown/release/bfotburn.wasm $WASMFILE
 }
 
 #Writing to FILE_UPLOADHASH
@@ -130,7 +132,7 @@ Instantiate() {
     
     #read from FILE_CODE_ID
     CODE_ID=$(cat $FILE_CODE_ID)
-    junod tx wasm instantiate $CODE_ID '{"owner":"'$ADDR_WORKSHOP'", "fot_token_address":"'$FOT_ADDRESS'", "bfot_token_address":"'$BFOT_ADDRESS'"}' --label "Fot Burn $CODE_ID" $WALLET $TXFLAG -y
+    junod tx wasm instantiate $CODE_ID '{"owner":"'$ADDR_WORKSHOP'", "bfot_token_address":"'$BFOT_ADDRESS'", "gfot_token_address":"'$GFOT_ADDRESS'"}' --label "BFot Burn $CODE_ID" $WALLET $TXFLAG -y
 }
 
 #Get Instantiated Contract Address
@@ -155,29 +157,29 @@ GetContractAddress() {
 ###################################################################################################
 ###################################################################################################
 #Send initial tokens
-SendFot() {
-    CONTRACT_FOTBURN=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"1000000","contract":"'$CONTRACT_FOTBURN'","msg":""}}' $WALLET $TXFLAG -y
+SendBFot() {
+    CONTRACT_BFOTBURN=$(cat $FILE_CONTRACT_ADDR)
+    junod tx wasm execute $BFOT_ADDRESS '{"send":{"amount":"100000","contract":"'$CONTRACT_BFOTBURN'","msg":""}}' $WALLET $TXFLAG -y
 }
 
-SendBFot() {
-    CONTRACT_FOTBURN=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $BFOT_ADDRESS '{"send":{"amount":"100000000000000000000","contract":"'$CONTRACT_FOTBURN'","msg":""}}' $WALLET $TXFLAG -y
+SendGFot() {
+    CONTRACT_BFOTBURN=$(cat $FILE_CONTRACT_ADDR)
+    junod tx wasm execute $BFOT_ADDRESS '{"send":{"amount":"1000000000000000","contract":"'$CONTRACT_BFOTBURN'","msg":""}}' $WALLET $TXFLAG -y
 }
 
 Withdraw() {
-    CONTRACT_FOTBURN=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $CONTRACT_FOTBURN '{"withdraw_all":{}}' $WALLET $TXFLAG -y
+    CONTRACT_BFOTBURN=$(cat $FILE_CONTRACT_ADDR)
+    junod tx wasm execute $CONTRACT_BFOTBURN '{"withdraw_all":{}}' $WALLET $TXFLAG -y
 }
 
 UpdateConfig() {
-    CONTRACT_FOTBURN=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $CONTRACT_FOTBURN '{"update_config":{"new_owner":"'$ADDR_WORKSHOP'"}}' $WALLET $TXFLAG -y
+    CONTRACT_BFOTBURN=$(cat $FILE_CONTRACT_ADDR)
+    junod tx wasm execute $CONTRACT_BFOTBURN '{"update_config":{"new_owner":"'$ADDR_WORKSHOP'"}}' $WALLET $TXFLAG -y
 }
 
 PrintConfig() {
-    CONTRACT_FOTBURN=$(cat $FILE_CONTRACT_ADDR)
-    junod query wasm contract-state smart $CONTRACT_FOTBURN '{"config":{}}' $NODECHAIN
+    CONTRACT_BFOTBURN=$(cat $FILE_CONTRACT_ADDR)
+    junod query wasm contract-state smart $CONTRACT_BFOTBURN '{"config":{}}' $NODECHAIN
 }
 
 #################################################################################
@@ -186,13 +188,13 @@ PrintWalletBalance() {
     echo "========================================="
     junod query bank balances $ADDR_WORKSHOP $NODECHAIN
     echo "========================================="
-    echo "FOT balance"
-    echo "========================================="
-    junod query wasm contract-state smart $FOT_ADDRESS '{"balance":{"address":"'$ADDR_WORKSHOP'"}}' $NODECHAIN
-    echo "========================================="
     echo "BFOT balance"
     echo "========================================="
     junod query wasm contract-state smart $BFOT_ADDRESS '{"balance":{"address":"'$ADDR_WORKSHOP'"}}' $NODECHAIN
+    echo "========================================="
+    echo "GFOT balance"
+    echo "========================================="
+    junod query wasm contract-state smart $GFOT_ADDRESS '{"balance":{"address":"'$ADDR_WORKSHOP'"}}' $NODECHAIN
 }
 
 #################################### End of Function ###################################################
@@ -205,16 +207,16 @@ sleep 10
     Instantiate
 sleep 10
     GetContractAddress
-# sleep 5
-#     SendBFot
+sleep 5
+    SendGFot
 # sleep 5
 #     SendFot
 # sleep 5
 #     Withdraw
-# sleep 5
-#     PrintConfig
-# sleep 5
-#     PrintWalletBalance
+sleep 5
+    PrintConfig
+sleep 5
+    PrintWalletBalance
 else
     $PARAM
 fi

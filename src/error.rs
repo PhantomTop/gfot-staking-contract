@@ -1,4 +1,6 @@
 use cosmwasm_std::{StdError, Uint128};
+use cw_utils::{Expiration, Scheduled};
+use hex::FromHexError;
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq)]
@@ -6,64 +8,39 @@ pub enum ContractError {
     #[error("{0}")]
     Std(#[from] StdError),
 
+    #[error("{0}")]
+    Hex(#[from] FromHexError),
+
     #[error("Unauthorized")]
     Unauthorized {},
 
-    #[error("Validator '{validator}' not in current validator set")]
-    NotInValidatorSet { validator: String },
+    #[error("InvalidInput")]
+    InvalidInput {},
 
-    #[error("Different denominations in bonds: '{denom1}' vs. '{denom2}'")]
-    DifferentBondDenom { denom1: String, denom2: String },
+    #[error("Not FOT or bFOT token")]
+    UnacceptableToken {},
 
-    #[error("Stored bonded {stored}, but query bonded {queried}")]
-    BondedMismatch { stored: Uint128, queried: Uint128 },
+    #[error("Not enough gFOT")]
+    NotEnoughgFOT {},
 
-    #[error("No {denom} tokens sent")]
-    EmptyBalance { denom: String },
+    #[error("Not enough bFOT, needs {bfot_accept_amount}")]
+    NotEnoughbFOT { bfot_accept_amount:Uint128 },
 
-    #[error("Must unbond at least {min_bonded} {denom}")]
-    UnbondTooSmall { min_bonded: Uint128, denom: String },
+    #[error("Already claimed")]
+    Claimed {},
 
-    #[error("Insufficient balance in contract to process claim")]
-    BalanceTooSmall {},
+    #[error("Wrong length")]
+    WrongLength {},
 
-    #[error("No claims that can be released currently")]
-    NothingToClaim {},
+    #[error("Verification failed")]
+    VerificationFailed {},
 
-    #[error("Cannot set to own account")]
-    CannotSetOwnAccount {},
+    #[error("Cannot migrate from different contract type: {previous_contract}")]
+    CannotMigrate { previous_contract: String },
 
-    #[error("Invalid zero amount")]
-    InvalidZeroAmount {},
+    #[error("Airdrop stage {stage} expired at {expiration}")]
+    StageExpired { stage: u8, expiration: Expiration },
 
-    #[error("Allowance is expired")]
-    Expired {},
-
-    #[error("No allowance for this account")]
-    NoAllowance {},
-
-    #[error("Minting cannot exceed the cap")]
-    CannotExceedCap {},
-}
-
-impl From<cw20_base::ContractError> for ContractError {
-    fn from(err: cw20_base::ContractError) -> Self {
-        match err {
-            cw20_base::ContractError::Std(error) => ContractError::Std(error),
-            cw20_base::ContractError::Unauthorized {} => ContractError::Unauthorized {},
-            cw20_base::ContractError::CannotSetOwnAccount {} => {
-                ContractError::CannotSetOwnAccount {}
-            }
-            cw20_base::ContractError::InvalidZeroAmount {} => ContractError::InvalidZeroAmount {},
-            cw20_base::ContractError::Expired {} => ContractError::Expired {},
-            cw20_base::ContractError::NoAllowance {} => ContractError::NoAllowance {},
-            cw20_base::ContractError::CannotExceedCap {} => ContractError::CannotExceedCap {},
-            // This should never happen, as this contract doesn't use logo
-            cw20_base::ContractError::LogoTooBig {}
-            | cw20_base::ContractError::InvalidPngHeader {}
-            | cw20_base::ContractError::InvalidXmlPreamble {} => {
-                ContractError::Std(StdError::generic_err(err.to_string()))
-            }
-        }
-    }
+    #[error("Airdrop stage {stage} begins at {start}")]
+    StageNotBegun { stage: u8, start: Scheduled },
 }
