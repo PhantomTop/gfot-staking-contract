@@ -1,11 +1,11 @@
 [package]
-name = "bfotburn"
+name = "gfotstaking"
 version = "0.0.1"
 authors = ["Joni Lai <phantomtop0127@gmail.com>", "FORTIS"]
 edition = "2018"
 description = "bFOT<->gFOT replace contract"
 license = "Apache-2.0"
-repository = "https://github.com/PhantomTop/fotburn-contract"
+repository = "https://github.com/PhantomTop/gfot-staking-contract"
 homepage = "https://cosmwasm.com"
 documentation = "https://docs.cosmwasm.com"
 

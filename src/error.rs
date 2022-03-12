@@ -17,14 +17,23 @@ pub enum ContractError {
     #[error("InvalidInput")]
     InvalidInput {},
 
-    #[error("Not FOT or bFOT token")]
+    #[error("Not FOT or gFOT token")]
     UnacceptableToken {},
 
     #[error("Not enough gFOT")]
     NotEnoughgFOT {},
 
+    #[error("No Reward")]
+    NoReward {},
+
+    #[error("No Staked")]
+    NoStaked {},
+
     #[error("Not enough bFOT, needs {bfot_accept_amount}")]
     NotEnoughbFOT { bfot_accept_amount:Uint128 },
+
+    #[error("Not enough FOT")]
+    NotEnoughFOT { },
 
     #[error("Already claimed")]
     Claimed {},
