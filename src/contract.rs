@@ -4,7 +4,7 @@ use std::collections::btree_set::Difference;
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     attr, to_binary, from_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128,
-    WasmMsg, WasmQuery, QueryRequest, CosmosMsg, Order, Addr
+    WasmMsg, WasmQuery, QueryRequest, CosmosMsg, Order, Addr, Decimal
 };
 use cw2::{get_contract_version, set_contract_version};
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, Cw20QueryMsg, Cw20CoinVerified};
@@ -338,6 +338,8 @@ pub fn query(deps: Deps, _env: Env, msg: QueryMsg) -> StdResult<Binary> {
             => to_binary(&query_staker(deps, address)?),
         QueryMsg::ListStakers {start_after, limit} 
             => to_binary(&query_list_stakers(deps, start_after, limit)?),
+        QueryMsg::Apy {} 
+            => to_binary(&query_apy(deps)?),
     }
 }
 
@@ -393,6 +395,38 @@ fn query_list_stakers(
     Ok(StakerListResponse { stakers })
 }
 
+pub fn query_apy(deps: Deps) -> StdResult<f64> {
+    let cfg = CONFIG.load(deps.storage)?;
+
+    // gFot_minting_cost: This is calculated by 1 / (GFOT current supply / 10^10 + 10000)
+    let gfot_token_info: TokenInfoResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: cfg.gfot_token_address.clone().into(),
+            msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,
+        }))?;
+
+    let gfot_current_supply = Uint128::from(gfot_token_info.total_supply);
+
+    let gfot_rate = (gfot_current_supply.checked_div(Uint128::from(10_000_000_000u128)).unwrap())
+    .checked_add(Uint128::from(10000u128)).unwrap();
+    let gfot_minting_cost = 1.0 / (gfot_rate.u128() as f64);
+    
+    
+    // bFot_receiving_ratio: This is calculated by 109 - (FOT current supply - 1) / 10^16
+    let fot_token_info: TokenInfoResponse =
+        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+            contract_addr: cfg.fot_token_address.clone().into(),
+            msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,
+        }))?;
+
+    let fot_current_supply = Uint128::from(fot_token_info.total_supply);
+    let fot_rate = (fot_current_supply - Uint128::from(1u128)).checked_div(Uint128::from(10_000_000_000_000_000u128)).unwrap();
+    let bfot_receiving_ratio = 109.0 - (fot_rate.u128() as f64);
+
+    let total_staked_gfot = cfg.gfot_amount.u128() as f64;
+    Ok(365.0 * 10.0 * gfot_minting_cost * bfot_receiving_ratio / total_staked_gfot)
+}
+
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, ContractError> {
@@ -404,3 +438,4 @@ pub fn migrate(deps: DepsMut, _env: Env, _msg: MigrateMsg) -> Result<Response, C
     }
     Ok(Response::default())
 }
+

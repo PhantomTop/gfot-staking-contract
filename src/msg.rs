@@ -43,6 +43,8 @@ pub enum QueryMsg {
     ListStakers {
         start_after: Option<String>,
         limit: Option<u32>
+    },
+    Apy {
 
     }
 }
