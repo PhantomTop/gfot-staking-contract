@@ -255,6 +255,8 @@ sleep 5
     SendGFot
 sleep 5
     PrintStaker
+sleep 5
+    PrintListStakers
 else
     $PARAM
 fi

@@ -400,32 +400,33 @@ fn query_staker(deps: Deps, address: Addr) -> StdResult<StakerResponse> {
     })
 }
 
-// fn map_staker(
-//     item: StdResult<(Addr, Staker)>,
-// ) -> StdResult<StakerInfo> {
-//     item.map(|(addr, staker)| {
-//         StakerInfo {
-//             address: addr,
-//             amount: staker.amount,
-//             reward: staker.reward
-//         }
-//     })
-// }
+fn map_staker(
+    item: StdResult<(Addr, (Uint128, Uint128))>,
+) -> StdResult<StakerInfo> {
+    item.map(|(address, (amount, reward))| {
+        StakerInfo {
+            address,
+            amount,
+            reward
+        }
+    })
+}
 
 fn query_list_stakers(
     deps: Deps,
     start_after: Option<String>,
     limit: Option<u32>,
-) -> StdResult<CountInfo> {
-    // let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    // let addr = maybe_addr(deps.api, start_after)?;
-    // let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
+) -> StdResult<StakerListResponse> {
+    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    let addr = maybe_addr(deps.api, start_after)?;
+    let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
 
-    // let stakers = STAKERS
-    //     .range(deps.storage, start, None, Order::Ascending)
-    //     .take(limit)
-    //     .map(|item| map_staker(item))
-    //     .collect::<StdResult<_>>()?;
+    let stakers:StdResult<Vec<_>> = STAKERS
+        .range(deps.storage, start, None, Order::Ascending)
+        // .take(limit)
+        .map(|item| map_staker(item))
+        .collect();
+
     let cfg = CONFIG.load(deps.storage)?;
     let mut ret:Vec<StakerInfo> = vec![];
     // for item in cfg.addresses {
@@ -439,10 +440,10 @@ fn query_list_stakers(
     //         reward: staker.reward
     //     });
     // }
-    // Ok(StakerListResponse { stakers: ret })
-    Ok(CountInfo {
-        count: cfg.addresses.len() as u128
-    })
+    Ok(StakerListResponse { stakers: stakers? })
+    // Ok(CountInfo {
+    //     count: cfg.addresses.len() as u128
+    // })
 }
 
 pub fn query_apy(deps: Deps) -> StdResult<Uint128> {
