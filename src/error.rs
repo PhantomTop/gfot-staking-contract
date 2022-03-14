@@ -41,8 +41,8 @@ pub enum ContractError {
     #[error("Wrong length")]
     WrongLength {},
 
-    #[error("Verification failed")]
-    VerificationFailed {},
+    #[error("Map2List failed")]
+    Map2ListFailed {},
 
     #[error("Cannot migrate from different contract type: {previous_contract}")]
     CannotMigrate { previous_contract: String },
