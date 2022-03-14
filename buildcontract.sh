@@ -253,9 +253,9 @@ sleep 5
     PrintWalletBalance
 sleep 5
     SendGFot
-sleep 5
+sleep 7
     PrintStaker
-sleep 5
+sleep 7
     PrintListStakers
 else
     $PARAM

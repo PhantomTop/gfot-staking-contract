@@ -57,7 +57,8 @@ pub struct ConfigResponse {
     pub bfot_token_address: String,
     pub gfot_token_address: String,
     pub fot_amount: Uint128,
-    pub gfot_amount: Uint128
+    pub gfot_amount: Uint128,
+    pub last_time: u64
 
 }
 

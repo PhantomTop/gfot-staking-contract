@@ -28,7 +28,7 @@ const DAILY_FOT_AMOUNT:u128 = 100_000_000_000u128;
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
     deps: DepsMut,
-    _env: Env,
+    env: Env,
     info: MessageInfo,
     msg: InstantiateMsg,
 ) -> StdResult<Response> {
@@ -45,7 +45,7 @@ pub fn instantiate(
         gfot_token_address: msg.gfot_token_address,
         fot_amount: Uint128::zero(),
         gfot_amount: Uint128::zero(),
-        last_time: 0u64,
+        last_time: env.block.time.seconds(),
         addresses: vec![]
     };
     CONFIG.save(deps.storage, &config)?;
@@ -82,43 +82,35 @@ pub fn update_total_reward (
     
     let delta = cfg.last_time % 86400u64 - before_time % 86400u64;
     if delta > 0 {
+        CONFIG.save(deps.storage, &cfg)?;
         //distributing FOT total amount
         let tot_fot_amount = Uint128::from(DAILY_FOT_AMOUNT).checked_mul(Uint128::from(delta)).unwrap();
-        
 
         let addr = maybe_addr(deps.api, start_after)?;
         let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
 
-        let list:Vec<StakerInfo> = STAKERS
+        let stakers:StdResult<Vec<_>> = STAKERS
             .range(deps.storage, start, None, Order::Ascending)
-            // .take(limit)
-            .map(|item| {
-                item.map(|(address, (amount, reward))| StakerInfo {
-                    address,
-                    amount,
-                    reward
-                })
-            })
-            .collect::<StdResult<_>>()?;
+            .map(|item| map_staker(item))
+            .collect();
 
-        // Ok(StakerListResponse { list })
-        // // let all: StdResult<Vec<_>> = STAKERS
-        // //     .range(deps.storage, None, None, Order::Ascending)
-        // //     .collect();
-        // // if !all.is_ok() {
-        // //     return Err(ContractError::Map2ListFailed {})
-        // // }
-        // let list = all.ok().unwrap();
-        // let mut tot_amount = 0u128;
-        // for item in &list {
-        //     tot_amount += item.amount;
-        // }
+        
+        if stakers.is_err() {
+            return Err(ContractError::Map2ListFailed {})
+        }
+        
+        let mut tot_amount = Uint128::zero();
+        let staker2 = stakers.unwrap().clone();
+        let staker3 = staker2.clone();
+        for item in staker2 {
+            tot_amount += item.amount;
+        }
 
-        // for item in &list {
-        //     let mut new_reward = tot_fot_amount.u128() * item.reward / tot_amount;
-        //     new_reward = item.reward + new_reward;
-        //     STAKERS.save(deps.storage, &item.address.clone(), (item.amount, reward: new_reward})?;
-        // }
+        for item in staker3 {
+            let mut new_reward = tot_fot_amount.checked_mul(item.amount).unwrap().checked_div(tot_amount).unwrap();
+            new_reward = item.reward + new_reward;
+            STAKERS.save(deps.storage, item.address.clone(), &(item.amount, new_reward))?;
+        }
     }
     Ok(Response::default())
 }
@@ -156,7 +148,7 @@ pub fn try_receive(
         cfg.gfot_amount = cfg.gfot_amount + wrapper.amount;
         CONFIG.save(deps.storage, &cfg)?;
 
-        //update_total_reward(deps, env, None)?;
+        update_total_reward(deps, env, None)?;
 
         return Ok(Response::new()
             .add_attributes(vec![
@@ -190,7 +182,7 @@ pub fn try_claim_reward(
 
     let mut cfg = CONFIG.load(deps.storage)?;
 
-    let (mut amount, mut reward) = STAKERS.load(deps.storage, info.sender.clone())?;
+    let (amount, reward) = STAKERS.load(deps.storage, info.sender.clone())?;
     
     if reward == Uint128::zero() {
         return Err(ContractError::NoReward {});
@@ -212,7 +204,7 @@ pub fn try_claim_reward(
         funds: vec![],
     };
 
-    //update_total_reward(deps, env, None)?;
+    update_total_reward(deps, env, None)?;
     return Ok(Response::new()
         .add_message(exec_cw20_transfer)
         .add_attributes(vec![
@@ -229,7 +221,7 @@ pub fn try_unstake(
 ) -> Result<Response, ContractError> {
 
     let mut cfg = CONFIG.load(deps.storage)?;
-    let (mut amount, mut reward) = STAKERS.load(deps.storage, info.sender.clone())?;
+    let (amount, reward) = STAKERS.load(deps.storage, info.sender.clone())?;
     
     if amount == Uint128::zero() {
         return Err(ContractError::NoStaked {});
@@ -252,7 +244,7 @@ pub fn try_unstake(
         funds: vec![],
     };
     
-    //update_total_reward(deps, env, None)?;
+    update_total_reward(deps, env, None)?;
     return Ok(Response::new()
         .add_message(exec_cw20_transfer)
         .add_attributes(vec![
@@ -317,8 +309,8 @@ pub fn try_withdraw_fot(deps: DepsMut, env:Env, info: MessageInfo) -> Result<Res
         funds: vec![],
     };
 
-    //update_total_reward(deps, env, None)?;
-    // return Ok(Response::new());
+    update_total_reward(deps, env, None)?;
+
     return Ok(Response::new()
         .add_message(exec_cw20_transfer)
         .add_attributes(vec![
@@ -347,8 +339,8 @@ pub fn try_withdraw_gfot(deps: DepsMut, env: Env, info: MessageInfo) -> Result<R
         funds: vec![],
     };
 
-    //update_total_reward(deps, env, None)?;
-    // return Ok(Response::new());
+    update_total_reward(deps, env, None)?;
+
     return Ok(Response::new()
         .add_message(exec_cw20_transfer)
         .add_attributes(vec![
@@ -382,7 +374,8 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         bfot_token_address: cfg.bfot_token_address.into(),
         gfot_token_address: cfg.gfot_token_address.into(),
         fot_amount: cfg.fot_amount,
-        gfot_amount: cfg.gfot_amount
+        gfot_amount: cfg.gfot_amount,
+        last_time: cfg.last_time
     })
 }
 
@@ -423,27 +416,11 @@ fn query_list_stakers(
 
     let stakers:StdResult<Vec<_>> = STAKERS
         .range(deps.storage, start, None, Order::Ascending)
-        // .take(limit)
+        .take(limit)
         .map(|item| map_staker(item))
         .collect();
 
-    let cfg = CONFIG.load(deps.storage)?;
-    let mut ret:Vec<StakerInfo> = vec![];
-    // for item in cfg.addresses {
-    //     let staker = STAKERS.load(deps.storage, item.clone())?;
-    //     if staker.amount == 0u128 && staker.reward == 0u128 {
-    //         continue;
-    //     }
-    //     ret.push(StakerInfo {
-    //         address: item.clone(),
-    //         amount: staker.amount,
-    //         reward: staker.reward
-    //     });
-    // }
     Ok(StakerListResponse { stakers: stakers? })
-    // Ok(CountInfo {
-    //     count: cfg.addresses.len() as u128
-    // })
 }
 
 pub fn query_apy(deps: Deps) -> StdResult<Uint128> {
