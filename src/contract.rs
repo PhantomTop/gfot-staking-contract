@@ -385,7 +385,11 @@ const DEFAULT_LIMIT: u32 = 10;
 
 fn query_staker(deps: Deps, address: Addr) -> StdResult<StakerResponse> {
     
-    let (amount, reward) = STAKERS.load(deps.storage, address.clone())?;
+    let exists = STAKERS.may_load(deps.storage, address.clone())?;
+    let (mut amount, mut reward) = (Uint128::zero(), Uint128::zero());
+    if exists.is_some() {
+        (amount, reward) = exists.unwrap();
+    } 
     Ok(StakerResponse {
         address,
         amount,
@@ -425,6 +429,10 @@ fn query_list_stakers(
 
 pub fn query_apy(deps: Deps) -> StdResult<Uint128> {
     let cfg = CONFIG.load(deps.storage)?;
+    let total_staked_gfot = cfg.gfot_amount;
+    if total_staked_gfot == Uint128::zero() {
+        return Ok(Uint128::zero());
+    }
     // For integer handling, return apy * 10000000000
     // gFot_minting_cost: This is calculated by 1 / (GFOT current supply / 10^10 + 10000)
     let gfot_token_info: TokenInfoResponse =
@@ -452,7 +460,7 @@ pub fn query_apy(deps: Deps) -> StdResult<Uint128> {
     let fot_rate = (fot_current_supply - Uint128::from(1u128)).checked_div(Uint128::from(10_000_000_000_000_000u128)).unwrap();
     let bfot_receiving_ratio = Uint128::from(109u128) - fot_rate;
 
-    let total_staked_gfot = cfg.gfot_amount;
+    
 
     Ok(Uint128::from(36500000000000u128).checked_mul(bfot_receiving_ratio).unwrap().checked_div(gfot_rate).unwrap().checked_div(total_staked_gfot).unwrap())
     // Ok(Uint128::from(365000000u128).checked_mul(bfot_receiving_ratio).unwrap().checked_div(gfot_rate).unwrap())

@@ -251,11 +251,11 @@ sleep 5
     PrintConfig
 sleep 5
     PrintWalletBalance
+# sleep 5
+#     SendFot
 sleep 5
-    SendGFot
-sleep 7
     PrintStaker
-sleep 7
+sleep 5
     PrintListStakers
 else
     $PARAM
