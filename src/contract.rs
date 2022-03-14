@@ -80,7 +80,7 @@ pub fn update_total_reward (
     let before_time = cfg.last_time;
     cfg.last_time = env.block.time.seconds();
     
-    let delta = cfg.last_time % 86400u64 - before_time % 86400u64;
+    let delta = cfg.last_time / 86400u64 - before_time / 86400u64;
     if delta > 0 {
         CONFIG.save(deps.storage, &cfg)?;
         //distributing FOT total amount
