@@ -14,7 +14,8 @@ pub struct Config {
     pub gfot_token_address: Addr,
     pub fot_amount: Uint128,
     pub gfot_amount: Uint128,
-    pub last_time: u64
+    pub last_time: u64,
+    pub addresses: Vec<Addr>
     
 }
 
@@ -22,4 +23,4 @@ pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
 
 pub const STAKERS_KEY: &str = "stakers";
-pub const STAKERS: Map<&Addr, (u128, u128)> = Map::new(STAKERS_KEY);
+pub const STAKERS: Map<Addr, (Uint128, Uint128)> = Map::new(STAKERS_KEY);

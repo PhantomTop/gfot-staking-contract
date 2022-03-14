@@ -76,6 +76,17 @@ pub struct StakerListResponse {
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct StakerInfo {
     pub address: Addr,
-    pub amount: u128,
-    pub reward: u128
+    pub amount: Uint128,
+    pub reward: Uint128
+}
+
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct StakerResponse {
+    pub address: Addr,
+    pub amount: Uint128,
+    pub reward: Uint128
+}
+#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
+pub struct CountInfo {
+    pub count: u128
 }

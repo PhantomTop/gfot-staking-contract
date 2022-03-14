@@ -164,7 +164,7 @@ SendFot() {
 
 SendGFot() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $GFOT_ADDRESS '{"send":{"amount":"10000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $GFOT_ADDRESS '{"send":{"amount":"100000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
 }
 
 WithdrawFot() {
@@ -241,8 +241,8 @@ sleep 10
     Instantiate
 sleep 10
     GetContractAddress
-sleep 5
-    SendFot
+# sleep 5
+#     SendFot
 # sleep 5
 #     SendFot
 # sleep 5
@@ -253,6 +253,8 @@ sleep 5
     PrintWalletBalance
 sleep 5
     SendGFot
+sleep 5
+    PrintStaker
 else
     $PARAM
 fi

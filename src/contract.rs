@@ -13,7 +13,7 @@ use cw_utils::{maybe_addr};
 use cw_storage_plus::Bound;
 use crate::error::ContractError;
 use crate::msg::{
-    ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, ReceiveMsg, StakerListResponse, StakerInfo
+    ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, ReceiveMsg, StakerListResponse, StakerInfo, CountInfo, StakerResponse
 };
 use crate::state::{
     Config, CONFIG, STAKERS
@@ -45,7 +45,8 @@ pub fn instantiate(
         gfot_token_address: msg.gfot_token_address,
         fot_amount: Uint128::zero(),
         gfot_amount: Uint128::zero(),
-        last_time: 0u64
+        last_time: 0u64,
+        addresses: vec![]
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -93,7 +94,7 @@ pub fn update_total_reward (
             // .take(limit)
             .map(|item| {
                 item.map(|(address, (amount, reward))| StakerInfo {
-                    address: address.into(),
+                    address,
                     amount,
                     reward
                 })
@@ -108,16 +109,16 @@ pub fn update_total_reward (
         // //     return Err(ContractError::Map2ListFailed {})
         // // }
         // let list = all.ok().unwrap();
-        let mut tot_amount = 0u128;
-        for item in &list {
-            tot_amount += item.amount;
-        }
+        // let mut tot_amount = 0u128;
+        // for item in &list {
+        //     tot_amount += item.amount;
+        // }
 
-        for item in &list {
-            let mut new_reward = tot_fot_amount.u128() * item.reward / tot_amount;
-            new_reward = item.reward + new_reward;
-            STAKERS.save(deps.storage, &item.address.clone(), &(item.amount, new_reward))?;
-        }
+        // for item in &list {
+        //     let mut new_reward = tot_fot_amount.u128() * item.reward / tot_amount;
+        //     new_reward = item.reward + new_reward;
+        //     STAKERS.save(deps.storage, &item.address.clone(), (item.amount, reward: new_reward})?;
+        // }
     }
     Ok(Response::default())
 }
@@ -141,14 +142,16 @@ pub fn try_receive(
     // Staking case
     if info.sender == cfg.gfot_token_address {
 
-        let (mut amount, mut reward) = (0u128, 0u128);
-        let exists = STAKERS.may_load(deps.storage, &user_addr.clone())?;
+        let exists = STAKERS.may_load(deps.storage, user_addr.clone())?;
+        let (mut amount, mut reward) = (Uint128::zero(), Uint128::zero());
         if exists.is_some() {
-            (amount, reward) = STAKERS.load(deps.storage, &user_addr.clone())?;
+            (amount, reward) = exists.unwrap();
+        } else {
+            cfg.addresses.push(user_addr.clone());
         }
         
-        amount = amount + wrapper.amount.u128();
-        STAKERS.save(deps.storage, &user_addr.clone(), &(amount, reward))?;
+        amount += wrapper.amount;
+        STAKERS.save(deps.storage, user_addr.clone(), &(amount, reward))?;
         
         cfg.gfot_amount = cfg.gfot_amount + wrapper.amount;
         CONFIG.save(deps.storage, &cfg)?;
@@ -185,11 +188,21 @@ pub fn try_claim_reward(
     info: MessageInfo
 ) -> Result<Response, ContractError> {
 
-    let (amount, reward) = STAKERS.load(deps.storage, &info.sender.clone())?;
-    if reward == 0u128 {
+    let mut cfg = CONFIG.load(deps.storage)?;
+
+    let (mut amount, mut reward) = STAKERS.load(deps.storage, info.sender.clone())?;
+    
+    if reward == Uint128::zero() {
         return Err(ContractError::NoReward {});
     }
-    let mut cfg = CONFIG.load(deps.storage)?;
+    if cfg.fot_amount < Uint128::from(reward) {
+        return Err(ContractError::NotEnoughFOT {});
+    }
+    
+    cfg.fot_amount -= Uint128::from(reward);
+    CONFIG.save(deps.storage, &cfg)?;
+    STAKERS.save(deps.storage, info.sender.clone(), &(amount, Uint128::zero()))?;
+
     let exec_cw20_transfer = WasmMsg::Execute {
         contract_addr: cfg.fot_token_address.clone().into(),
         msg: to_binary(&Cw20ExecuteMsg::Transfer {
@@ -199,15 +212,7 @@ pub fn try_claim_reward(
         funds: vec![],
     };
 
-    if cfg.fot_amount < Uint128::from(reward) {
-        return Err(ContractError::NotEnoughFOT {});
-    }
-    cfg.fot_amount -= Uint128::from(reward);
-    CONFIG.save(deps.storage, &cfg)?;
-    STAKERS.save(deps.storage, &info.sender.clone(), &(amount, 0u128))?;
-
     //update_total_reward(deps, env, None)?;
-    // return Ok(Response::new());
     return Ok(Response::new()
         .add_message(exec_cw20_transfer)
         .add_attributes(vec![
@@ -223,11 +228,21 @@ pub fn try_unstake(
     info: MessageInfo
 ) -> Result<Response, ContractError> {
 
-    let (amount, reward) = STAKERS.load(deps.storage, &info.sender.clone())?;
-    if amount == 0u128 {
+    let mut cfg = CONFIG.load(deps.storage)?;
+    let (mut amount, mut reward) = STAKERS.load(deps.storage, info.sender.clone())?;
+    
+    if amount == Uint128::zero() {
         return Err(ContractError::NoStaked {});
     }
-    let mut cfg = CONFIG.load(deps.storage)?;
+    if cfg.gfot_amount < Uint128::from(amount) {
+        return Err(ContractError::NotEnoughgFOT {});
+    }
+
+    cfg.gfot_amount -= Uint128::from(amount);
+
+    CONFIG.save(deps.storage, &cfg)?;
+    STAKERS.save(deps.storage, info.sender.clone(), &(Uint128::zero(), reward))?;
+
     let exec_cw20_transfer = WasmMsg::Execute {
         contract_addr: cfg.gfot_token_address.clone().into(),
         msg: to_binary(&Cw20ExecuteMsg::Transfer {
@@ -236,21 +251,14 @@ pub fn try_unstake(
         })?,
         funds: vec![],
     };
-    if cfg.gfot_amount < Uint128::from(amount) {
-        return Err(ContractError::NotEnoughgFOT {});
-    }
-    cfg.gfot_amount -= Uint128::from(amount);
-    CONFIG.save(deps.storage, &cfg)?;
-    STAKERS.save(deps.storage, &info.sender.clone(), &(0u128, reward))?;
-
+    
     //update_total_reward(deps, env, None)?;
-    // return Ok(Response::new());
     return Ok(Response::new()
         .add_message(exec_cw20_transfer)
         .add_attributes(vec![
-            attr("action", "claim_reward"),
+            attr("action", "unstake"),
             attr("address", info.sender.clone()),
-            attr("fot_amount", Uint128::from(reward)),
+            attr("gfot_amount", Uint128::from(amount)),
         ]));
 }
 
@@ -382,45 +390,64 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
 const MAX_LIMIT: u32 = 30;
 const DEFAULT_LIMIT: u32 = 10;
 
-fn query_staker(deps: Deps, address: Addr) -> StdResult<StakerInfo> {
+fn query_staker(deps: Deps, address: Addr) -> StdResult<StakerResponse> {
     
-    let (amount, reward) = STAKERS.load(deps.storage, &address.clone())?;
-        
-    // let (amount, reward) = STAKERS.may_load(deps.storage, &address)?;
-    let staker = StakerInfo {
+    let (amount, reward) = STAKERS.load(deps.storage, address.clone())?;
+    Ok(StakerResponse {
         address,
         amount,
-        reward 
-    };
-    Ok(staker)
+        reward
+    })
 }
+
+// fn map_staker(
+//     item: StdResult<(Addr, Staker)>,
+// ) -> StdResult<StakerInfo> {
+//     item.map(|(addr, staker)| {
+//         StakerInfo {
+//             address: addr,
+//             amount: staker.amount,
+//             reward: staker.reward
+//         }
+//     })
+// }
+
 fn query_list_stakers(
     deps: Deps,
     start_after: Option<String>,
     limit: Option<u32>,
-) -> StdResult<StakerListResponse> {
-    let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
-    let addr = maybe_addr(deps.api, start_after)?;
-    let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
+) -> StdResult<CountInfo> {
+    // let limit = limit.unwrap_or(DEFAULT_LIMIT).min(MAX_LIMIT) as usize;
+    // let addr = maybe_addr(deps.api, start_after)?;
+    // let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
 
-    let stakers = STAKERS
-        .range(deps.storage, start, None, Order::Ascending)
-        .take(limit)
-        .map(|item| {
-            item.map(|(address, (amount, reward))| StakerInfo {
-                address: address.into(),
-                amount,
-                reward
-            })
-        })
-        .collect::<StdResult<_>>()?;
-
-    Ok(StakerListResponse { stakers })
+    // let stakers = STAKERS
+    //     .range(deps.storage, start, None, Order::Ascending)
+    //     .take(limit)
+    //     .map(|item| map_staker(item))
+    //     .collect::<StdResult<_>>()?;
+    let cfg = CONFIG.load(deps.storage)?;
+    let mut ret:Vec<StakerInfo> = vec![];
+    // for item in cfg.addresses {
+    //     let staker = STAKERS.load(deps.storage, item.clone())?;
+    //     if staker.amount == 0u128 && staker.reward == 0u128 {
+    //         continue;
+    //     }
+    //     ret.push(StakerInfo {
+    //         address: item.clone(),
+    //         amount: staker.amount,
+    //         reward: staker.reward
+    //     });
+    // }
+    // Ok(StakerListResponse { stakers: ret })
+    Ok(CountInfo {
+        count: cfg.addresses.len() as u128
+    })
 }
 
 pub fn query_apy(deps: Deps) -> StdResult<Uint128> {
     let cfg = CONFIG.load(deps.storage)?;
-    // For integer handling, return apy * 100000
+    // For integer handling, return apy * 10000000000
     // gFot_minting_cost: This is calculated by 1 / (GFOT current supply / 10^10 + 10000)
     let gfot_token_info: TokenInfoResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
@@ -449,7 +476,8 @@ pub fn query_apy(deps: Deps) -> StdResult<Uint128> {
 
     let total_staked_gfot = cfg.gfot_amount;
 
-    Ok(Uint128::from(365000000u128).checked_mul(bfot_receiving_ratio).unwrap().checked_div(gfot_rate).unwrap().checked_div(total_staked_gfot).unwrap())
+    Ok(Uint128::from(36500000000000u128).checked_mul(bfot_receiving_ratio).unwrap().checked_div(gfot_rate).unwrap().checked_div(total_staked_gfot).unwrap())
+    // Ok(Uint128::from(365000000u128).checked_mul(bfot_receiving_ratio).unwrap().checked_div(gfot_rate).unwrap())
 }
 
 

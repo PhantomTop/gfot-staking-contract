@@ -52,4 +52,7 @@ pub enum ContractError {
 
     #[error("Airdrop stage {stage} begins at {start}")]
     StageNotBegun { stage: u8, start: Scheduled },
+
+    #[error("Count {count}")]
+    Count { count: u64 },
 }
