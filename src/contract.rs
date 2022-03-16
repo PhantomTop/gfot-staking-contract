@@ -4,7 +4,7 @@ use std::collections::btree_set::Difference;
 use cosmwasm_std::entry_point;
 use cosmwasm_std::{
     attr, to_binary, from_binary, Binary, Deps, DepsMut, Env, MessageInfo, Response, StdResult, Uint128,
-    WasmMsg, WasmQuery, QueryRequest, CosmosMsg, Order, Addr, Decimal
+    WasmMsg, WasmQuery, QueryRequest, CosmosMsg, Order, Addr, Decimal, Storage, Api
 };
 use cw2::{get_contract_version, set_contract_version};
 use cw20::{Cw20ExecuteMsg, Cw20ReceiveMsg, Cw20QueryMsg, Cw20CoinVerified};
@@ -71,26 +71,27 @@ pub fn execute(
 }
 
 pub fn update_total_reward (
-    deps: DepsMut,
+    storage: &mut Storage,
+    api: &Api,
     env: Env,
     start_after:Option<String>
 ) -> Result<Response, ContractError> {
 
-    let mut cfg = CONFIG.load(deps.storage)?;
+    let mut cfg = CONFIG.load(storage)?;
     let before_time = cfg.last_time;
     cfg.last_time = env.block.time.seconds();
     
     let delta = cfg.last_time / 86400u64 - before_time / 86400u64;
     if delta > 0 {
-        CONFIG.save(deps.storage, &cfg)?;
+        CONFIG.save(storage, &cfg)?;
         //distributing FOT total amount
         let tot_fot_amount = Uint128::from(DAILY_FOT_AMOUNT).checked_mul(Uint128::from(delta)).unwrap();
 
-        let addr = maybe_addr(deps.api, start_after)?;
+        let addr = maybe_addr(api, start_after)?;
         let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
 
         let stakers:StdResult<Vec<_>> = STAKERS
-            .range(deps.storage, start, None, Order::Ascending)
+            .range(storage, start, None, Order::Ascending)
             .map(|item| map_staker(item))
             .collect();
 
@@ -109,7 +110,7 @@ pub fn update_total_reward (
         for item in staker3 {
             let mut new_reward = tot_fot_amount.checked_mul(item.amount).unwrap().checked_div(tot_amount).unwrap();
             new_reward = item.reward + new_reward;
-            STAKERS.save(deps.storage, item.address.clone(), &(item.amount, new_reward))?;
+            STAKERS.save(storage, item.address.clone(), &(item.amount, new_reward))?;
         }
     }
     Ok(Response::default())
@@ -133,7 +134,7 @@ pub fn try_receive(
 
     // Staking case
     if info.sender == cfg.gfot_token_address {
-
+        update_total_reward(deps.storage, deps.api, env, None)?;
         let exists = STAKERS.may_load(deps.storage, user_addr.clone())?;
         let (mut amount, mut reward) = (Uint128::zero(), Uint128::zero());
         if exists.is_some() {
@@ -148,7 +149,7 @@ pub fn try_receive(
         cfg.gfot_amount = cfg.gfot_amount + wrapper.amount;
         CONFIG.save(deps.storage, &cfg)?;
 
-        update_total_reward(deps, env, None)?;
+        
 
         return Ok(Response::new()
             .add_attributes(vec![
@@ -180,6 +181,7 @@ pub fn try_claim_reward(
     info: MessageInfo
 ) -> Result<Response, ContractError> {
 
+    update_total_reward(deps.storage, deps.api, env, None)?;
     let mut cfg = CONFIG.load(deps.storage)?;
 
     let (amount, reward) = STAKERS.load(deps.storage, info.sender.clone())?;
@@ -204,7 +206,7 @@ pub fn try_claim_reward(
         funds: vec![],
     };
 
-    update_total_reward(deps, env, None)?;
+    
     return Ok(Response::new()
         .add_message(exec_cw20_transfer)
         .add_attributes(vec![
@@ -220,6 +222,7 @@ pub fn try_unstake(
     info: MessageInfo
 ) -> Result<Response, ContractError> {
 
+    update_total_reward(deps.storage, deps.api, env, None)?;
     let mut cfg = CONFIG.load(deps.storage)?;
     let (amount, reward) = STAKERS.load(deps.storage, info.sender.clone())?;
     
@@ -244,7 +247,7 @@ pub fn try_unstake(
         funds: vec![],
     };
     
-    update_total_reward(deps, env, None)?;
+    
     return Ok(Response::new()
         .add_message(exec_cw20_transfer)
         .add_attributes(vec![
@@ -292,7 +295,9 @@ pub fn execute_update_config(
 
 pub fn try_withdraw_fot(deps: DepsMut, env:Env, info: MessageInfo) -> Result<Response, ContractError> {
 
+    
     check_owner(&deps, &info)?;
+    update_total_reward(deps.storage, deps.api, env, None)?;
     let mut cfg = CONFIG.load(deps.storage)?;
     
     let fot_amount = cfg.fot_amount;
@@ -309,8 +314,6 @@ pub fn try_withdraw_fot(deps: DepsMut, env:Env, info: MessageInfo) -> Result<Res
         funds: vec![],
     };
 
-    update_total_reward(deps, env, None)?;
-
     return Ok(Response::new()
         .add_message(exec_cw20_transfer)
         .add_attributes(vec![
@@ -322,7 +325,9 @@ pub fn try_withdraw_fot(deps: DepsMut, env:Env, info: MessageInfo) -> Result<Res
 
 pub fn try_withdraw_gfot(deps: DepsMut, env: Env, info: MessageInfo) -> Result<Response, ContractError> {
 
+    
     check_owner(&deps, &info)?;
+    update_total_reward(deps.storage, deps.api, env, None)?;
     let mut cfg = CONFIG.load(deps.storage)?;
     
     let gfot_amount = cfg.gfot_amount;
@@ -339,7 +344,7 @@ pub fn try_withdraw_gfot(deps: DepsMut, env: Env, info: MessageInfo) -> Result<R
         funds: vec![],
     };
 
-    update_total_reward(deps, env, None)?;
+    
 
     return Ok(Response::new()
         .add_message(exec_cw20_transfer)
