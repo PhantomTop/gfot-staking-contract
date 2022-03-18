@@ -71,8 +71,8 @@ pub fn execute(
 }
 
 pub fn update_total_reward (
-    storage: &mut Storage,
-    api: &Api,
+    storage: &mut dyn Storage,
+    api: &dyn Api,
     env: Env,
     start_after:Option<String>
 ) -> Result<Response, ContractError> {

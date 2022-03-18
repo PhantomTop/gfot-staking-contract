@@ -5,27 +5,27 @@ PARAM=$1
 ####################################    Constants    ##################################################
 
 #depends on mainnet or testnet
-# NODE="--node https://rpc.junomint.com:443"
-# CHAIN_ID=juno-1
-# DENOM="ujuno"
-# FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
-# BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
-
+NODE="--node https://rpc.junomint.com:443"
+CHAIN_ID=juno-1
+DENOM="ujuno"
+FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
+BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
+GFOT_ADDRESS="juno10ynpq4wchr4ruu6mhrfh29495ep4cja5vjnkhz3j5lrgcsap9vtssyeekl"
 
 ##########################################################################################
 
-NODE="--node https://rpc.juno.giansalex.dev:443"
-#NODE="--node https://rpc.uni.junomint.com:443"
-CHAIN_ID=uni-2
-DENOM="ujunox"
-FOT_ADDRESS="juno1yqmcu5uw27mzkacputegtg46cx55ylwgcnatjy3mejxqdjsx3kmq5a280s"
-BFOT_ADDRESS="juno1f69f4902tgkuthp26ghwjwta9e5ulqdelcmdxp8acevw89w0028sflaunv"
-GFOT_ADDRESS="juno1yk6nqklwp7zekkpvl3g3ykxxkwy6xjl28hyf3d6xe3ex523q9kwszgujhe"
+# NODE="--node https://rpc.juno.giansalex.dev:443"
+# #NODE="--node https://rpc.uni.junomint.com:443"
+# CHAIN_ID=uni-2
+# DENOM="ujunox"
+# FOT_ADDRESS="juno1yqmcu5uw27mzkacputegtg46cx55ylwgcnatjy3mejxqdjsx3kmq5a280s"
+# BFOT_ADDRESS="juno1f69f4902tgkuthp26ghwjwta9e5ulqdelcmdxp8acevw89w0028sflaunv"
+# GFOT_ADDRESS="juno1yk6nqklwp7zekkpvl3g3ykxxkwy6xjl28hyf3d6xe3ex523q9kwszgujhe"
 
 ##########################################################################################
 #not depends
 NODECHAIN=" $NODE --chain-id $CHAIN_ID"
-TXFLAG=" $NODECHAIN --gas-prices 0.03$DENOM --gas auto --gas-adjustment 1.3"
+TXFLAG=" $NODECHAIN --gas-prices 0.003$DENOM --gas auto --gas-adjustment 1.3"
 WALLET="--from workshop"
 
 WASMFILE="artifacts/gfotstaking.wasm"
