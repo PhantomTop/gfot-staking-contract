@@ -132,7 +132,7 @@ Instantiate() {
     
     #read from FILE_CODE_ID
     CODE_ID=$(cat $FILE_CODE_ID)
-    junod tx wasm instantiate $CODE_ID '{"owner":"'$ADDR_WORKSHOP'", "fot_token_address":"'$FOT_ADDRESS'","bfot_token_address":"'$BFOT_ADDRESS'", "gfot_token_address":"'$GFOT_ADDRESS'"}' --label "GFOT Staking" $WALLET $TXFLAG -y
+    junod tx wasm instantiate $CODE_ID '{"owner":"'$ADDR_WORKSHOP'", "fot_token_address":"'$FOT_ADDRESS'","bfot_token_address":"'$BFOT_ADDRESS'", "gfot_token_address":"'$GFOT_ADDRESS'", "daily_fot_amount":"100000000000000", "apy_prefix":"36500000"}' --label "GFOT Staking" $WALLET $TXFLAG -y
 }
 
 #Get Instantiated Contract Address
@@ -159,7 +159,7 @@ GetContractAddress() {
 #Send initial tokens
 SendFot() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"36500000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"36500000000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
 }
 
 SendGFot() {
@@ -190,6 +190,11 @@ Unstake() {
 UpdateConfig() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
     junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_config":{"new_owner":"'$ADDR_WORKSHOP'"}}' $WALLET $TXFLAG -y
+}
+
+UpdateConstants() {
+    CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_constants":{"daily_fot_amount":"100000000000000", "apy_prefix":"36500000"}}' $WALLET $TXFLAG -y
 }
 
 PrintConfig() {
@@ -241,8 +246,8 @@ sleep 10
     Instantiate
 sleep 10
     GetContractAddress
-sleep 5
-    SendFot
+# sleep 5
+#     SendFot
 # sleep 5
 #     SendFot
 # sleep 5

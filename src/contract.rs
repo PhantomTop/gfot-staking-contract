@@ -23,7 +23,8 @@ use crate::state::{
 const CONTRACT_NAME: &str = "gfotstaking";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
-const DAILY_FOT_AMOUNT:u128 = 100_000_000_000u128;
+// const DAILY_FOT_AMOUNT:u128 = 100_000_000_000_000u128;
+const MULTIPLE:u128 = 10_000_000_000u128;
 
 #[cfg_attr(not(feature = "library"), entry_point)]
 pub fn instantiate(
@@ -46,7 +47,9 @@ pub fn instantiate(
         fot_amount: Uint128::zero(),
         gfot_amount: Uint128::zero(),
         last_time: 0u64,
-        addresses: vec![]
+        addresses: vec![],
+        daily_fot_amount: msg.daily_fot_amount,
+        apy_prefix: msg.apy_prefix
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -62,6 +65,7 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::UpdateConfig { new_owner } => execute_update_config(deps, info, new_owner),
+        ExecuteMsg::UpdateConstants { daily_fot_amount, apy_prefix } => execute_update_constants(deps, info, daily_fot_amount, apy_prefix),
         ExecuteMsg::Receive(msg) => try_receive(deps, env, info, msg),
         ExecuteMsg::WithdrawFot {} => try_withdraw_fot(deps, env, info),
         ExecuteMsg::WithdrawGFot {} => try_withdraw_gfot(deps, env, info),
@@ -90,7 +94,7 @@ pub fn update_total_reward (
     if delta > 0 {
         CONFIG.save(storage, &cfg)?;    
         //distributing FOT total amount
-        let tot_fot_amount = Uint128::from(DAILY_FOT_AMOUNT).checked_mul(Uint128::from(delta)).unwrap();
+        let tot_fot_amount = cfg.daily_fot_amount.checked_mul(Uint128::from(delta)).unwrap();
 
         let addr = maybe_addr(api, start_after)?;
         let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
@@ -299,6 +303,29 @@ pub fn execute_update_config(
     Ok(Response::new().add_attribute("action", "update_config"))
 }
 
+
+pub fn execute_update_constants(
+    deps: DepsMut,
+    info: MessageInfo,
+    daily_fot_amount: Uint128,
+    apy_prefix: Uint128
+) -> Result<Response, ContractError> {
+    // authorize owner
+    check_owner(&deps, &info)?;
+    
+    //test code for checking if check_owner works well
+    // return Err(ContractError::InvalidInput {});
+    // if owner some validated to addr, otherwise set to none
+    
+    CONFIG.update(deps.storage, |mut exists| -> StdResult<_> {
+        exists.daily_fot_amount = daily_fot_amount;
+        exists.apy_prefix = apy_prefix;
+        Ok(exists)
+    })?;
+
+    Ok(Response::new().add_attribute("action", "update_constants"))
+}
+
 pub fn try_withdraw_fot(deps: DepsMut, env:Env, info: MessageInfo) -> Result<Response, ContractError> {
 
     
@@ -386,7 +413,9 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         gfot_token_address: cfg.gfot_token_address.into(),
         fot_amount: cfg.fot_amount,
         gfot_amount: cfg.gfot_amount,
-        last_time: cfg.last_time
+        last_time: cfg.last_time,
+        daily_fot_amount: cfg.daily_fot_amount,
+        apy_prefix: cfg.apy_prefix
     })
 }
 
@@ -444,7 +473,8 @@ pub fn query_apy(deps: Deps) -> StdResult<Uint128> {
     if total_staked_gfot == Uint128::zero() {
         return Ok(Uint128::zero());
     }
-    // For integer handling, return apy * 10000000000
+    // For integer handling, return apy * MULTIPLE(10^10)
+
     // gFot_minting_cost: This is calculated by 1 / (GFOT current supply / 10^10 + 10000)
     let gfot_token_info: TokenInfoResponse =
         deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
@@ -461,19 +491,20 @@ pub fn query_apy(deps: Deps) -> StdResult<Uint128> {
     
     
     // bFot_receiving_ratio: This is calculated by 109 - (FOT current supply - 1) / 10^16
-    let fot_token_info: TokenInfoResponse =
-        deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
-            contract_addr: cfg.fot_token_address.clone().into(),
-            msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,
-        }))?;
+    // let fot_token_info: TokenInfoResponse =
+    //     deps.querier.query(&QueryRequest::Wasm(WasmQuery::Smart {
+    //         contract_addr: cfg.fot_token_address.clone().into(),
+    //         msg: to_binary(&Cw20QueryMsg::TokenInfo {})?,
+    //     }))?;
 
-    let fot_current_supply = Uint128::from(fot_token_info.total_supply);
-    let fot_rate = (fot_current_supply - Uint128::from(1u128)).checked_div(Uint128::from(10_000_000_000_000_000u128)).unwrap();
-    let bfot_receiving_ratio = Uint128::from(109u128) - fot_rate;
+    // let fot_current_supply = Uint128::from(fot_token_info.total_supply);
+    // let fot_rate = (fot_current_supply - Uint128::from(1u128)).checked_div(Uint128::from(10_000_000_000_000_000u128)).unwrap();
+    // let bfot_receiving_ratio = Uint128::from(109u128) - fot_rate;
 
     
+    Ok(cfg.apy_prefix.checked_mul(Uint128::from(MULTIPLE)).unwrap().checked_mul(Uint128::from(MULTIPLE)).unwrap().checked_div(gfot_rate).unwrap().checked_div(total_staked_gfot).unwrap())
 
-    Ok(Uint128::from(36500000000000u128).checked_mul(bfot_receiving_ratio).unwrap().checked_div(gfot_rate).unwrap().checked_div(total_staked_gfot).unwrap())
+    // Ok(cfg.apy_prefix.checked_mul(Uint128::from(MULTIPLE)).unwrap().checked_mul(bfot_receiving_ratio).unwrap().checked_div(gfot_rate).unwrap().checked_div(total_staked_gfot).unwrap())
     // Ok(Uint128::from(365000000u128).checked_mul(bfot_receiving_ratio).unwrap().checked_div(gfot_rate).unwrap())
 }
 

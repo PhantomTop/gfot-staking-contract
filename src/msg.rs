@@ -10,6 +10,8 @@ pub struct InstantiateMsg {
     pub fot_token_address: Addr,
     pub bfot_token_address: Addr,
     pub gfot_token_address: Addr,
+    pub daily_fot_amount: Uint128,
+    pub apy_prefix: Uint128
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -19,6 +21,10 @@ pub enum ExecuteMsg {
         /// NewOwner if non sent, contract gets locked. Recipients can receive airdrops
         /// but owner cannot register new stages.
         new_owner: Option<String>,
+    },
+    UpdateConstants {
+        daily_fot_amount: Uint128,
+        apy_prefix: Uint128
     },
     Receive(Cw20ReceiveMsg),
     WithdrawFot { },
@@ -58,7 +64,9 @@ pub struct ConfigResponse {
     pub gfot_token_address: String,
     pub fot_amount: Uint128,
     pub gfot_amount: Uint128,
-    pub last_time: u64
+    pub last_time: u64,
+    pub daily_fot_amount: Uint128,
+    pub apy_prefix: Uint128
 
 }
 
