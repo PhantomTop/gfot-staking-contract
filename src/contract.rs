@@ -45,7 +45,7 @@ pub fn instantiate(
         gfot_token_address: msg.gfot_token_address,
         fot_amount: Uint128::zero(),
         gfot_amount: Uint128::zero(),
-        last_time: env.block.time.seconds(),
+        last_time: 0u64,
         addresses: vec![]
     };
     CONFIG.save(deps.storage, &config)?;
@@ -78,12 +78,17 @@ pub fn update_total_reward (
 ) -> Result<Response, ContractError> {
 
     let mut cfg = CONFIG.load(storage)?;
+    if cfg.last_time == 0u64 {
+        cfg.last_time = env.block.time.seconds();
+        CONFIG.save(storage, &cfg)?;
+    }
     let before_time = cfg.last_time;
+    
     cfg.last_time = env.block.time.seconds();
     
     let delta = cfg.last_time / 86400u64 - before_time / 86400u64;
     if delta > 0 {
-        CONFIG.save(storage, &cfg)?;
+        CONFIG.save(storage, &cfg)?;    
         //distributing FOT total amount
         let tot_fot_amount = Uint128::from(DAILY_FOT_AMOUNT).checked_mul(Uint128::from(delta)).unwrap();
 
@@ -135,6 +140,7 @@ pub fn try_receive(
     // Staking case
     if info.sender == cfg.gfot_token_address {
         update_total_reward(deps.storage, deps.api, env, None)?;
+        cfg = CONFIG.load(deps.storage)?;
         let exists = STAKERS.may_load(deps.storage, user_addr.clone())?;
         let (mut amount, mut reward) = (Uint128::zero(), Uint128::zero());
         if exists.is_some() {

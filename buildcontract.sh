@@ -5,7 +5,7 @@ PARAM=$1
 ####################################    Constants    ##################################################
 
 #depends on mainnet or testnet
-NODE="--node https://rpc.junomint.com:443"
+NODE="--node https://rpc-juno.itastakers.com:443"
 CHAIN_ID=juno-1
 DENOM="ujuno"
 FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
@@ -235,14 +235,14 @@ PrintWalletBalance() {
 if [[ $PARAM == "" ]]; then
     RustBuild
     Upload
-sleep 8
+sleep 10
     GetCode
 sleep 10
     Instantiate
 sleep 10
     GetContractAddress
-# sleep 5
-#     SendFot
+sleep 5
+    SendFot
 # sleep 5
 #     SendFot
 # sleep 5
