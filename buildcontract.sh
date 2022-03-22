@@ -205,7 +205,7 @@ UpdateConfig() {
 
 UpdateConstants() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_constants":{"daily_fot_amount":"300000000000000", "apy_prefix":"109500000"}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_constants":{"daily_fot_amount":"300000000000000", "apy_prefix":"109500000", "reward_interval": 3600}}' $WALLET $TXFLAG -y
 }
 
 PrintConfig() {
