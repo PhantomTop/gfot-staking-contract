@@ -15,6 +15,13 @@ pub struct InstantiateMsg {
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
+pub struct StakerInfo {
+    pub address: Addr,
+    pub amount: Uint128,
+    pub reward: Uint128
+}
+
+#[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
 #[serde(rename_all = "snake_case")]
 pub enum ExecuteMsg {
     UpdateConfig {
@@ -24,13 +31,26 @@ pub enum ExecuteMsg {
     },
     UpdateConstants {
         daily_fot_amount: Uint128,
-        apy_prefix: Uint128
+        apy_prefix: Uint128,
     },
     Receive(Cw20ReceiveMsg),
     WithdrawFot { },
     WithdrawGFot { },
     ClaimReward { },
-    Unstake {}
+    Unstake {},
+    UpdateLastTime {
+        last_time: u64
+    },
+    AddStakers {
+        stakers: Vec<StakerInfo>
+    },
+    RemoveStaker {
+        address: Addr
+    },
+    RemoveAllStakers {
+        start_after: Option<String>,
+        limit: Option<u32>
+    }
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -82,12 +102,6 @@ pub struct StakerListResponse {
 
 /// Returns the vote (opinion as well as weight counted) as well as
 /// the address of the voter who submitted it
-#[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
-pub struct StakerInfo {
-    pub address: Addr,
-    pub amount: Uint128,
-    pub reward: Uint128
-}
 
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct StakerResponse {

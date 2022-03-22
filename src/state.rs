@@ -15,7 +15,6 @@ pub struct Config {
     pub fot_amount: Uint128,
     pub gfot_amount: Uint128,
     pub last_time: u64,
-    pub addresses: Vec<Addr>,
     pub daily_fot_amount: Uint128,
     pub apy_prefix: Uint128
     

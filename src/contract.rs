@@ -47,7 +47,6 @@ pub fn instantiate(
         fot_amount: Uint128::zero(),
         gfot_amount: Uint128::zero(),
         last_time: 0u64,
-        addresses: vec![],
         daily_fot_amount: msg.daily_fot_amount,
         apy_prefix: msg.apy_prefix
     };
@@ -71,6 +70,10 @@ pub fn execute(
         ExecuteMsg::WithdrawGFot {} => try_withdraw_gfot(deps, env, info),
         ExecuteMsg::ClaimReward {} => try_claim_reward(deps, env, info),
         ExecuteMsg::Unstake {} => try_unstake(deps, env, info),
+        ExecuteMsg::UpdateLastTime { last_time } => execute_update_last_time(deps, info, last_time),
+        ExecuteMsg::AddStakers { stakers } => execute_add_stakers(deps, info, stakers),
+        ExecuteMsg::RemoveStaker { address } => execute_remove_staker(deps, info, address),
+        ExecuteMsg::RemoveAllStakers { start_after, limit } => execute_remove_all_stakers(deps, info, start_after, limit),
     }
 }
 
@@ -149,8 +152,6 @@ pub fn try_receive(
         let (mut amount, mut reward) = (Uint128::zero(), Uint128::zero());
         if exists.is_some() {
             (amount, reward) = exists.unwrap();
-        } else {
-            cfg.addresses.push(user_addr.clone());
         }
         
         amount += wrapper.amount;
@@ -205,7 +206,12 @@ pub fn try_claim_reward(
     
     cfg.fot_amount -= Uint128::from(reward);
     CONFIG.save(deps.storage, &cfg)?;
-    STAKERS.save(deps.storage, info.sender.clone(), &(amount, Uint128::zero()))?;
+    
+    if amount == Uint128::zero() {
+        STAKERS.remove(deps.storage, info.sender.clone());
+    } else {
+        STAKERS.save(deps.storage, info.sender.clone(), &(amount, Uint128::zero()))?;
+    }
 
     let exec_cw20_transfer = WasmMsg::Execute {
         contract_addr: cfg.fot_token_address.clone().into(),
@@ -246,7 +252,12 @@ pub fn try_unstake(
     cfg.gfot_amount -= Uint128::from(amount);
 
     CONFIG.save(deps.storage, &cfg)?;
-    STAKERS.save(deps.storage, info.sender.clone(), &(Uint128::zero(), reward))?;
+
+    if reward == Uint128::zero() {
+        STAKERS.remove(deps.storage, info.sender.clone());
+    } else {
+        STAKERS.save(deps.storage, info.sender.clone(), &(Uint128::zero(), reward))?;
+    }
 
     let exec_cw20_transfer = WasmMsg::Execute {
         contract_addr: cfg.gfot_token_address.clone().into(),
@@ -326,6 +337,83 @@ pub fn execute_update_constants(
     Ok(Response::new().add_attribute("action", "update_constants"))
 }
 
+
+pub fn execute_update_last_time(
+    deps: DepsMut,
+    info: MessageInfo,
+    last_time: u64
+) -> Result<Response, ContractError> {
+    // authorize owner
+    check_owner(&deps, &info)?;
+    
+    CONFIG.update(deps.storage, |mut exists| -> StdResult<_> {
+        exists.last_time = last_time;
+        Ok(exists)
+    })?;
+
+    Ok(Response::new().add_attribute("action", "update_last_time"))
+}
+
+pub fn execute_add_stakers(
+    deps: DepsMut,
+    info: MessageInfo,
+    stakers: Vec<StakerInfo>
+) -> Result<Response, ContractError> {
+    // authorize owner
+    check_owner(&deps, &info)?;
+
+    let mut cfg = CONFIG.load(deps.storage)?;
+
+    for staker in stakers {
+        STAKERS.save(deps.storage, staker.address.clone(), &(staker.amount, staker.reward))?;
+    }
+    CONFIG.save(deps.storage, &cfg)?;
+    
+    Ok(Response::new().add_attribute("action", "add_stakers"))
+}
+
+
+pub fn execute_remove_staker(
+    deps: DepsMut,
+    info: MessageInfo,
+    address: Addr
+) -> Result<Response, ContractError> {
+    // authorize owner
+    check_owner(&deps, &info)?;
+    
+    STAKERS.remove(deps.storage, address.clone());
+    
+    Ok(Response::new().add_attribute("action", "remove_staker"))
+}
+
+
+
+pub fn execute_remove_all_stakers(
+    deps: DepsMut,
+    info: MessageInfo,
+    start_after: Option<String>,
+    limit: Option<u32>
+) -> Result<Response, ContractError> {
+    // authorize owner
+    check_owner(&deps, &info)?;
+    
+    let addr = maybe_addr(deps.api, start_after)?;
+    let start = addr.map(|addr| Bound::exclusive(addr.as_ref()));
+    let stakers:StdResult<Vec<_>> = STAKERS
+        .range(deps.storage, start, None, Order::Ascending)
+        .map(|item| map_staker(item))
+        .collect();
+
+    if stakers.is_err() {
+        return Err(ContractError::Map2ListFailed {})
+    }
+    
+    for item in stakers.unwrap() {
+        STAKERS.remove(deps.storage, item.address.clone());
+    }
+    
+    Ok(Response::new().add_attribute("action", "remove_all_stakers"))
+}
 pub fn try_withdraw_fot(deps: DepsMut, env:Env, info: MessageInfo) -> Result<Response, ContractError> {
 
     
