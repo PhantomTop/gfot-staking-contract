@@ -25,7 +25,7 @@ GFOT_ADDRESS="juno10ynpq4wchr4ruu6mhrfh29495ep4cja5vjnkhz3j5lrgcsap9vtssyeekl"
 ##########################################################################################
 #not depends
 NODECHAIN=" $NODE --chain-id $CHAIN_ID"
-TXFLAG=" $NODECHAIN --gas-prices 0.003$DENOM --gas auto --gas-adjustment 1.3"
+TXFLAG=" $NODECHAIN --gas-prices 0.0025$DENOM --gas auto --gas-adjustment 1.3"
 WALLET="--from workshop"
 
 WASMFILE="artifacts/gfotstaking.wasm"
@@ -37,6 +37,7 @@ FILE_CODE_ID="code.txt"
 ADDR_WORKSHOP="juno1htjut8n7jv736dhuqnad5mcydk6tf4ydeaan4s"
 ADDR_ACHILLES="juno15fg4zvl8xgj3txslr56ztnyspf3jc7n9j44vhz"
 ADDR_CEM="juno14u54rmpw78wux6vvrdx2vpdh998aaxxmrn6p7s"
+
 ###################################################################################################
 ###################################################################################################
 ###################################################################################################
@@ -132,7 +133,7 @@ Instantiate() {
     
     #read from FILE_CODE_ID
     CODE_ID=$(cat $FILE_CODE_ID)
-    junod tx wasm instantiate $CODE_ID '{"owner":"'$ADDR_WORKSHOP'", "fot_token_address":"'$FOT_ADDRESS'","bfot_token_address":"'$BFOT_ADDRESS'", "gfot_token_address":"'$GFOT_ADDRESS'", "daily_fot_amount":"300000000000000", "apy_prefix":"109500000"}' --label "GFOT Staking" $WALLET $TXFLAG -y
+    junod tx wasm instantiate $CODE_ID '{"owner":"'$ADDR_WORKSHOP'", "fot_token_address":"'$FOT_ADDRESS'","bfot_token_address":"'$BFOT_ADDRESS'", "gfot_token_address":"'$GFOT_ADDRESS'", "daily_fot_amount":"300000000000000", "apy_prefix":"109500000", "reward_interval":3600}' --label "GFOT Updated Staking" $WALLET $TXFLAG -y
 }
 
 #Get Instantiated Contract Address
@@ -159,12 +160,22 @@ GetContractAddress() {
 #Send initial tokens
 SendFot() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"36500000000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"36369136224780723","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
 }
 
 SendGFot() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $GFOT_ADDRESS '{"send":{"amount":"100000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $GFOT_ADDRESS '{"send":{"amount":"224890846943","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+}
+
+RemoveStaker() {
+    CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"remove_staker":{"address":"'$ADDR_WORKSHOP'"}}' $WALLET $TXFLAG -y
+}
+
+RemoveAllStakers() {
+    CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"remove_all_stakers":{}}' $WALLET $TXFLAG -y
 }
 
 WithdrawFot() {
@@ -240,26 +251,28 @@ PrintWalletBalance() {
 if [[ $PARAM == "" ]]; then
     RustBuild
     Upload
-sleep 10
+sleep 12
     GetCode
-sleep 10
+sleep 12
     Instantiate
 sleep 10
     GetContractAddress
-# sleep 5
+# sleep 10
 #     SendFot
-# sleep 5
-#     SendFot
+sleep 7
+    SendGFot
+sleep 10
+    RemoveAllStakers
 # sleep 5
 #     Withdraw
-sleep 5
+sleep 7
     PrintConfig
-sleep 5
+sleep 7
     PrintWalletBalance
+# sleep 7
+#     RemoveStaker
 # sleep 5
-#     SendFot
-sleep 5
-    PrintStaker
+#     PrintStaker
 sleep 5
     PrintListStakers
 else
