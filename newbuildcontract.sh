@@ -164,7 +164,7 @@ SendFot() {
 
 SendGFot() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $GFOT_ADDRESS '{"send":{"amount":"224821198222","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $GFOT_ADDRESS '{"send":{"amount":"224890846943","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
 }
 
 RemoveStaker() {

@@ -84,9 +84,9 @@ async function main() {
 
         queryMsg.start_after = list[list.length-1].address;
         console.log(oldstakers.length)
-        // if (oldstakers.length < 360)
-        //     await sleep(300)
-        // else 
+        if (oldstakers.length < 1530)
+            await sleep(300)
+        else 
         {
             await sleep(3000)
             await client.execute(
