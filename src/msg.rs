@@ -85,7 +85,8 @@ pub struct ConfigResponse {
     pub fot_amount: Uint128,
     pub gfot_amount: Uint128,
     pub daily_fot_amount: Uint128,
-    pub apy_prefix: Uint128
+    pub apy_prefix: Uint128,
+    pub reward_interval: u64
 
 }
 

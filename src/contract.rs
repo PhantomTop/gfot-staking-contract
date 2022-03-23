@@ -448,7 +448,8 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         fot_amount: cfg.fot_amount,
         gfot_amount: cfg.gfot_amount,
         daily_fot_amount: cfg.daily_fot_amount,
-        apy_prefix: cfg.apy_prefix
+        apy_prefix: cfg.apy_prefix,
+        reward_interval: cfg.reward_interval
     })
 }
 

@@ -5,27 +5,27 @@ PARAM=$1
 ####################################    Constants    ##################################################
 
 #depends on mainnet or testnet
-NODE="--node https://rpc-juno.itastakers.com:443"
-CHAIN_ID=juno-1
-DENOM="ujuno"
-FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
-BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
-GFOT_ADDRESS="juno10ynpq4wchr4ruu6mhrfh29495ep4cja5vjnkhz3j5lrgcsap9vtssyeekl"
+# NODE="--node https://rpc-juno.itastakers.com:443"
+# CHAIN_ID=juno-1
+# DENOM="ujuno"
+# FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
+# BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
+# GFOT_ADDRESS="juno10ynpq4wchr4ruu6mhrfh29495ep4cja5vjnkhz3j5lrgcsap9vtssyeekl"
 
 ##########################################################################################
 
-# NODE="--node https://rpc.juno.giansalex.dev:443"
-# #NODE="--node https://rpc.uni.junomint.com:443"
-# CHAIN_ID=uni-2
-# DENOM="ujunox"
-# FOT_ADDRESS="juno1yqmcu5uw27mzkacputegtg46cx55ylwgcnatjy3mejxqdjsx3kmq5a280s"
-# BFOT_ADDRESS="juno1f69f4902tgkuthp26ghwjwta9e5ulqdelcmdxp8acevw89w0028sflaunv"
-# GFOT_ADDRESS="juno1yk6nqklwp7zekkpvl3g3ykxxkwy6xjl28hyf3d6xe3ex523q9kwszgujhe"
+NODE="--node https://rpc.juno.giansalex.dev:443"
+#NODE="--node https://rpc.uni.junomint.com:443"
+CHAIN_ID=uni-2
+DENOM="ujunox"
+FOT_ADDRESS="juno1yqmcu5uw27mzkacputegtg46cx55ylwgcnatjy3mejxqdjsx3kmq5a280s"
+BFOT_ADDRESS="juno1f69f4902tgkuthp26ghwjwta9e5ulqdelcmdxp8acevw89w0028sflaunv"
+GFOT_ADDRESS="juno18hh4dflvfdcuklc9q4ghlr83fy5k4sdx6rgfzzwhdfqznsj4xjzqdsn5cc"
 
 ##########################################################################################
 #not depends
 NODECHAIN=" $NODE --chain-id $CHAIN_ID"
-TXFLAG=" $NODECHAIN --gas-prices 0.0025$DENOM --gas auto --gas-adjustment 1.3"
+TXFLAG=" $NODECHAIN --gas-prices 0.025$DENOM --gas auto --gas-adjustment 1.3"
 WALLET="--from workshop"
 
 WASMFILE="artifacts/gfotstaking.wasm"
@@ -160,7 +160,7 @@ GetContractAddress() {
 #Send initial tokens
 SendFot() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"36369136224780723","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"3000000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
 }
 
 SendGFot() {
@@ -205,7 +205,7 @@ UpdateConfig() {
 
 UpdateConstants() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_constants":{"daily_fot_amount":"300000000000000", "apy_prefix":"109500000", "reward_interval": 3600}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_constants":{"daily_fot_amount":"300000000", "apy_prefix":"109500000", "reward_interval": 600}}' $WALLET $TXFLAG -y
 }
 
 PrintConfig() {
@@ -257,10 +257,10 @@ sleep 12
     Instantiate
 sleep 10
     GetContractAddress
-# sleep 10
-#     SendFot
-sleep 7
-    SendGFot
+sleep 10
+    SendFot
+# sleep 7
+#     SendGFot
 sleep 10
     RemoveAllStakers
 # sleep 5
