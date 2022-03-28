@@ -17,6 +17,13 @@ pub enum ContractError {
     #[error("Unauthorized")]
     Unauthorized {},
 
+    #[error("Still Locked")]
+    StillLocked {},
+
+    #[error("Not Created Unstaking")]
+    NotCreatedUnstaking {},
+
+
     #[error("InvalidInput")]
     InvalidInput {},
 

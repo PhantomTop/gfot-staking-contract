@@ -166,7 +166,7 @@ SendFot() {
 
 SendGFot() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $GFOT_ADDRESS '{"send":{"amount":"224890846943","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $GFOT_ADDRESS '{"send":{"amount":"130000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
 }
 
 RemoveStaker() {
@@ -194,9 +194,19 @@ ClaimReward() {
     junod tx wasm execute $CONTRACT_GFOTSTAKING '{"claim_reward":{}}' $WALLET $TXFLAG -y
 }
 
+PrintUnstaking() {
+    CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
+    junod query wasm contract-state smart $CONTRACT_GFOTSTAKING '{"unstaking":{"address":"'$ADDR_FORTIS'"}}' $NODECHAIN
+}
+
 Unstake() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"unstake":{}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"create_unstake":{"unstake_amount":"10000"}}' $WALLET $TXFLAG -y
+}
+
+FetchUnstake() {
+    CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"fetch_unstake":{"index":0}}' $WALLET $TXFLAG -y
 }
 
 UpdateConfig() {

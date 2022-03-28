@@ -26,4 +26,7 @@ pub const CONFIG_KEY: &str = "config";
 pub const CONFIG: Item<Config> = Item::new(CONFIG_KEY);
 
 pub const STAKERS_KEY: &str = "stakers";
-pub const STAKERS: Map<Addr, (Uint128, Uint128, u64, Uint128, u64)> = Map::new(STAKERS_KEY);
+pub const STAKERS: Map<Addr, (Uint128, Uint128, u64, Uint128)> = Map::new(STAKERS_KEY);
+
+pub const UNSTAKING_KEY: &str = "unstaking";
+pub const UNSTAKING: Map<Addr, Vec<(Uint128, u64)>> = Map::new(UNSTAKING_KEY);

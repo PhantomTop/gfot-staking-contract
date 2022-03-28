@@ -22,8 +22,7 @@ pub struct StakerInfo {
     pub amount: Uint128,
     pub reward: Uint128,
     pub last_time: u64,
-    pub sfot_reward: Uint128,
-    pub start_time: u64
+    pub sfot_reward: Uint128
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, JsonSchema)]
@@ -51,8 +50,11 @@ pub enum ExecuteMsg {
     WithdrawFot { },
     WithdrawGFot { },
     ClaimReward { },
-    Unstake {
+    CreateUnstake {
         unstake_amount: Uint128
+    },
+    FetchUnstake {
+        index: u64
     },
     AddStakers {
         stakers: Vec<StakerInfo>
@@ -88,6 +90,9 @@ pub enum QueryMsg {
     },
     Apy {
 
+    },
+    Unstaking {
+        address: Addr
     }
 }
 
@@ -125,8 +130,7 @@ pub struct StakerResponse {
     pub amount: Uint128,
     pub reward: Uint128,
     pub last_time: u64,
-    pub sfot_reward: Uint128,
-    pub start_time: u64
+    pub sfot_reward: Uint128
 }
 #[derive(Serialize, Deserialize, Clone, PartialEq, JsonSchema, Debug)]
 pub struct CountInfo {
