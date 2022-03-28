@@ -13,7 +13,7 @@ use cw_utils::{maybe_addr};
 use cw_storage_plus::Bound;
 use crate::error::ContractError;
 use crate::msg::{
-    ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, ReceiveMsg, StakerListResponse, StakerInfo, CountInfo, StakerResponse
+    ConfigResponse, ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg, ReceiveMsg, StakerListResponse, StakerInfo, CountInfo, StakerResponse, SfotRewardInfo
 };
 use crate::state::{
     Config, CONFIG, STAKERS
@@ -48,7 +48,9 @@ pub fn instantiate(
         gfot_amount: Uint128::zero(),
         daily_fot_amount: msg.daily_fot_amount,
         apy_prefix: msg.apy_prefix,
-        reward_interval: msg.reward_interval
+        reward_interval: msg.reward_interval,
+        lock_days: msg.lock_days,
+        enabled: true
     };
     CONFIG.save(deps.storage, &config)?;
 
@@ -64,16 +66,27 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::UpdateConfig { new_owner } => execute_update_config(deps, info, new_owner),
-        ExecuteMsg::UpdateConstants { daily_fot_amount, apy_prefix , reward_interval} => execute_update_constants(deps, info, daily_fot_amount, apy_prefix, reward_interval),
+        ExecuteMsg::UpdateConstants { daily_fot_amount, apy_prefix , reward_interval, lock_days, enabled} => execute_update_constants(deps, info, daily_fot_amount, apy_prefix, reward_interval, lock_days, enabled),
         ExecuteMsg::Receive(msg) => try_receive(deps, env, info, msg),
         ExecuteMsg::WithdrawFot {} => try_withdraw_fot(deps, env, info),
         ExecuteMsg::WithdrawGFot {} => try_withdraw_gfot(deps, env, info),
         ExecuteMsg::ClaimReward {} => try_claim_reward(deps, env, info),
-        ExecuteMsg::Unstake {} => try_unstake(deps, env, info),
+        ExecuteMsg::Unstake {unstake_amount} => try_unstake(deps, env, info, unstake_amount),
         ExecuteMsg::AddStakers { stakers } => execute_add_stakers(deps, info, stakers),
         ExecuteMsg::RemoveStaker { address } => execute_remove_staker(deps, info, address),
         ExecuteMsg::RemoveAllStakers { start_after, limit } => execute_remove_all_stakers(deps, info, start_after, limit),
+        ExecuteMsg::AddSfotRewards { rewards } => execute_add_sfot_rewards(deps, info, rewards),
     }
+}
+pub fn check_enabled(
+    deps: &DepsMut,
+    info: &MessageInfo
+) -> Result<Response, ContractError> {
+    let cfg = CONFIG.load(deps.storage)?;
+    if !cfg.enabled {
+        return Err(ContractError::Disabled {})
+    }
+    Ok(Response::new().add_attribute("action", "check_enabled"))
 }
 
 pub fn update_reward (
@@ -85,22 +98,25 @@ pub fn update_reward (
 ) -> Result<Response, ContractError> {
     
     let exists = STAKERS.may_load(storage, address.clone())?;
-    let (mut amount, mut reward, mut last_time) = (Uint128::zero(), Uint128::zero(), 0u64);
+    let (mut amount, mut reward, mut last_time, mut sfot_reward, mut start_time) = (Uint128::zero(), Uint128::zero(), 0u64, Uint128::zero(), 0u64);
     if exists.is_some() {
-        (amount, reward, last_time) = exists.unwrap();
+        (amount, reward, last_time, sfot_reward, start_time) = exists.unwrap();
     }
 
     if last_time == 0u64 {
         last_time = env.block.time.seconds();
     }
-    STAKERS.save(storage, address.clone(), &(amount, reward, last_time))?;
+    if start_time == 0u64 {
+        start_time = env.block.time.seconds();
+    }
+    STAKERS.save(storage, address.clone(), &(amount, reward, last_time, sfot_reward, start_time))?;
 
     let cfg = CONFIG.load(storage)?;
     let delta = env.block.time.seconds() / cfg.reward_interval - last_time / cfg.reward_interval;
     
     if cfg.gfot_amount > Uint128::zero() && amount > Uint128::zero() && delta > 0 {
         reward += cfg.daily_fot_amount * Uint128::from(delta) * amount / cfg.gfot_amount;
-        STAKERS.save(storage, address.clone(), &(amount, reward, env.block.time.seconds()))?;
+        STAKERS.save(storage, address.clone(), &(amount, reward, env.block.time.seconds(), sfot_reward, start_time))?;
     }
 
     Ok(Response::default())
@@ -112,7 +128,7 @@ pub fn try_receive(
     info: MessageInfo, 
     wrapper: Cw20ReceiveMsg
 ) -> Result<Response, ContractError> {
-    
+    check_enabled(&deps, &info)?;
     let mut cfg = CONFIG.load(deps.storage)?;
     
     if wrapper.amount == Uint128::zero() {
@@ -123,9 +139,9 @@ pub fn try_receive(
     // Staking case
     if info.sender == cfg.gfot_token_address {
         update_reward(deps.storage, deps.api, env, user_addr.clone(), None)?;
-        let (mut amount, mut reward, mut last_time) = STAKERS.load(deps.storage, user_addr.clone())?;
+        let (mut amount, mut reward, mut last_time, sfot_reward, start_time) = STAKERS.load(deps.storage, user_addr.clone())?;
         amount += wrapper.amount;
-        STAKERS.save(deps.storage, user_addr.clone(), &(amount, reward, last_time))?;
+        STAKERS.save(deps.storage, user_addr.clone(), &(amount, reward, last_time, sfot_reward, start_time))?;
         
         cfg.gfot_amount = cfg.gfot_amount + wrapper.amount;
         CONFIG.save(deps.storage, &cfg)?;
@@ -160,26 +176,31 @@ pub fn try_claim_reward(
     info: MessageInfo
 ) -> Result<Response, ContractError> {
 
-    update_reward(deps.storage, deps.api, env, info.sender.clone(), None)?;
+    check_enabled(&deps, &info)?;
+    update_reward(deps.storage, deps.api, env.clone(), info.sender.clone(), None)?;
     let mut cfg = CONFIG.load(deps.storage)?;
 
-    let (amount, reward, last_time) = STAKERS.load(deps.storage, info.sender.clone())?;
+    let (amount, reward, last_time, sfot_reward, start_time) = STAKERS.load(deps.storage, info.sender.clone())?;
     
     if reward == Uint128::zero() {
         return Err(ContractError::NoReward {});
     }
-    if cfg.fot_amount < Uint128::from(reward) {
+    if cfg.fot_amount < reward {
         return Err(ContractError::NotEnoughFOT {});
+    }
+
+    if env.block.time.seconds() - start_time < 86400 * cfg.lock_days {
+        return Err(ContractError::StillInLock {});
     }
     
     cfg.fot_amount -= Uint128::from(reward);
     CONFIG.save(deps.storage, &cfg)?;
     
-    if amount == Uint128::zero() {
-        STAKERS.remove(deps.storage, info.sender.clone());
-    } else {
-        STAKERS.save(deps.storage, info.sender.clone(), &(amount, Uint128::zero(), last_time))?;
-    }
+    // if amount == Uint128::zero() {
+        // STAKERS.remove(deps.storage, info.sender.clone());
+    // } else {
+        STAKERS.save(deps.storage, info.sender.clone(), &(amount, Uint128::zero(), last_time, sfot_reward, start_time))?;
+    // }
 
     let exec_cw20_transfer = WasmMsg::Execute {
         contract_addr: cfg.fot_token_address.clone().into(),
@@ -203,29 +224,42 @@ pub fn try_claim_reward(
 pub fn try_unstake(
     deps: DepsMut,
     env: Env,
-    info: MessageInfo
+    info: MessageInfo,
+    unstake_amount: Uint128
 ) -> Result<Response, ContractError> {
 
-    update_reward(deps.storage, deps.api, env, info.sender.clone(), None)?;
+    check_enabled(&deps, &info)?;
+    update_reward(deps.storage, deps.api, env.clone(), info.sender.clone(), None)?;
     let mut cfg = CONFIG.load(deps.storage)?;
-    let (amount, reward, last_time) = STAKERS.load(deps.storage, info.sender.clone())?;
+    let (amount, reward, last_time, sfot_reward, mut start_time) = STAKERS.load(deps.storage, info.sender.clone())?;
     
     if amount == Uint128::zero() {
         return Err(ContractError::NoStaked {});
     }
-    if cfg.gfot_amount < Uint128::from(amount) {
+    if cfg.gfot_amount < amount {
         return Err(ContractError::NotEnoughgFOT {});
     }
+
+    if amount < unstake_amount {
+        return Err(ContractError::NotEnoughgFOT {});
+    }
+    if env.block.time.seconds() - start_time < 86400 * cfg.lock_days {
+        return Err(ContractError::StillInLock {});
+    }
+    
 
     cfg.gfot_amount -= Uint128::from(amount);
 
     CONFIG.save(deps.storage, &cfg)?;
 
-    if reward == Uint128::zero() {
-        STAKERS.remove(deps.storage, info.sender.clone());
-    } else {
-        STAKERS.save(deps.storage, info.sender.clone(), &(Uint128::zero(), reward, last_time))?;
+    if amount == unstake_amount {
+        start_time = 0u64;
     }
+    // if reward == Uint128::zero() {
+        // STAKERS.remove(deps.storage, info.sender.clone());
+    // } else {
+        STAKERS.save(deps.storage, info.sender.clone(), &(Uint128::zero(), reward, last_time, sfot_reward, start_time))?;
+    // }
 
     let exec_cw20_transfer = WasmMsg::Execute {
         contract_addr: cfg.gfot_token_address.clone().into(),
@@ -287,7 +321,9 @@ pub fn execute_update_constants(
     info: MessageInfo,
     daily_fot_amount: Uint128,
     apy_prefix: Uint128,
-    reward_interval: u64
+    reward_interval: u64,
+    lock_days: u64,
+    enabled: bool
 ) -> Result<Response, ContractError> {
     // authorize owner
     check_owner(&deps, &info)?;
@@ -300,6 +336,8 @@ pub fn execute_update_constants(
         exists.daily_fot_amount = daily_fot_amount;
         exists.apy_prefix = apy_prefix;
         exists.reward_interval = reward_interval;
+        exists.lock_days = lock_days;
+        exists.enabled = enabled;
         Ok(exists)
     })?;
 
@@ -316,10 +354,30 @@ pub fn execute_add_stakers(
     check_owner(&deps, &info)?;
 
     for staker in stakers {
-        STAKERS.save(deps.storage, staker.address.clone(), &(staker.amount, staker.reward, staker.last_time))?;
+        STAKERS.save(deps.storage, staker.address.clone(), &(staker.amount, staker.reward, staker.last_time, staker.reward, staker.start_time))?;
     }
     
     Ok(Response::new().add_attribute("action", "add_stakers"))
+}
+
+
+pub fn execute_add_sfot_rewards(
+    deps: DepsMut,
+    info: MessageInfo,
+    rewards: Vec<SfotRewardInfo>
+) -> Result<Response, ContractError> {
+    // authorize owner
+    check_owner(&deps, &info)?;
+
+    for rec in rewards {
+        let (amount, reward, last_time, mut sfot_reward, mut start_time) = STAKERS.load(deps.storage, rec.address.clone())?;
+
+        sfot_reward += rec.sfot_reward;
+
+        STAKERS.save(deps.storage, rec.address.clone(), &(amount, reward, last_time, sfot_reward, start_time))?;
+    }
+    
+    Ok(Response::new().add_attribute("action", "add_sfot_rewards"))
 }
 
 
@@ -460,27 +518,31 @@ const DEFAULT_LIMIT: u32 = 10;
 fn query_staker(deps: Deps, address: Addr) -> StdResult<StakerResponse> {
     
     let exists = STAKERS.may_load(deps.storage, address.clone())?;
-    let (mut amount, mut reward, mut last_time) = (Uint128::zero(), Uint128::zero(), 0u64);
+    let (mut amount, mut reward, mut last_time, mut sfot_reward, mut start_time) = (Uint128::zero(), Uint128::zero(), 0u64, Uint128::zero(), 0u64);
     if exists.is_some() {
-        (amount, reward, last_time) = exists.unwrap();
+        (amount, reward, last_time, sfot_reward, start_time) = exists.unwrap();
     } 
     Ok(StakerResponse {
         address,
         amount,
         reward,
-        last_time
+        last_time,
+        sfot_reward,
+        start_time
     })
 }
 
 fn map_staker(
-    item: StdResult<(Addr, (Uint128, Uint128, u64))>,
+    item: StdResult<(Addr, (Uint128, Uint128, u64, Uint128, u64))>,
 ) -> StdResult<StakerInfo> {
-    item.map(|(address, (amount, reward, last_time))| {
+    item.map(|(address, (amount, reward, last_time, sfot_reward, start_time))| {
         StakerInfo {
             address,
             amount,
             reward,
-            last_time
+            last_time,
+            sfot_reward,
+            start_time
         }
     })
 }

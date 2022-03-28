@@ -44,7 +44,7 @@ async function setup() {
     return { address, client };
 }
 
-const oldContractAddr = "juno1lju0p0f07ld5j7cy6jhvyhgesyuwg8ghm58cvklh8tf8nhmxsjcsmaczd4";
+const oldContractAddr = "juno1kh65msgczpzlvat9x94n82v8qnlmtkmjees4pjc9wppckw07d32se6qp6t";
 const newContractAddr = "juno1kh65msgczpzlvat9x94n82v8qnlmtkmjees4pjc9wppckw07d32se6qp6t";
 
 function sleep(ms) {
@@ -84,24 +84,24 @@ async function main() {
 
         queryMsg.start_after = list[list.length-1].address;
         console.log(oldstakers.length)
-        if (oldstakers.length < 1530)
+        // if (oldstakers.length < 1530)
             await sleep(300)
-        else 
-        {
-            await sleep(3000)
-            await client.execute(
-                address,
-                newContractAddr,
-                { 
-                    add_stakers: {
-                        stakers: list
-                    }
-                },
-                'auto',
-                '',
-                []
-            );
-        }
+        // else 
+        // {
+        //     await sleep(3000)
+        //     await client.execute(
+        //         address,
+        //         newContractAddr,
+        //         { 
+        //             add_stakers: {
+        //                 stakers: list
+        //             }
+        //         },
+        //         'auto',
+        //         '',
+        //         []
+        //     );
+        // }
         
         
     }

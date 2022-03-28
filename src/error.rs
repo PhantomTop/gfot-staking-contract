@@ -11,11 +11,17 @@ pub enum ContractError {
     #[error("{0}")]
     Hex(#[from] FromHexError),
 
+    #[error("Disabled")]
+    Disabled {},
+
     #[error("Unauthorized")]
     Unauthorized {},
 
     #[error("InvalidInput")]
     InvalidInput {},
+
+    #[error("Still in Lock period")]
+    StillInLock { },
 
     #[error("Not FOT or gFOT token")]
     UnacceptableToken {},
