@@ -45,7 +45,7 @@ async function setup() {
 }
 
 const oldContractAddr = "juno1kh65msgczpzlvat9x94n82v8qnlmtkmjees4pjc9wppckw07d32se6qp6t";
-const newContractAddr = "juno1kh65msgczpzlvat9x94n82v8qnlmtkmjees4pjc9wppckw07d32se6qp6t";
+const newContractAddr = "juno1tyw3kx4y9nt6gxjvg9pw9hcjqgtf6gmw7g8g0u8uyfww66y5lv7qppw7uz";
 
 function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
@@ -55,20 +55,20 @@ async function main() {
     const { address, client } = await setup();
 
     console.log('execute addstakers')
-    var oldstakers = []
-    var newstakers = []
+    
+    let last_time = 1648512184
+    let sfot_reward = '0'
     var queryMsg = {
         limit: 30
     };
 
-    let zerocnt = 0;
+    let globalstakers = [];
     while(true) {
         
         let arr = await client.queryContractSmart(
             oldContractAddr,
             {
                 list_stakers: queryMsg
-
             }
         );
         
@@ -76,42 +76,48 @@ async function main() {
 
         if (list.length == 0)
             break;
-
+        
+        let stakerslist = []
         list.forEach(element => {
             // console.log(element)
-            oldstakers.push(element)
+            element.last_time = last_time
+            element.sfot_reward = sfot_reward
+            // console.log(element)
+            stakerslist.push(element)
+            globalstakers.push(element)
         });
+        console.log(globalstakers.length)
+        queryMsg.start_after = list[list.length-1].address
 
-        queryMsg.start_after = list[list.length-1].address;
-        console.log(oldstakers.length)
-        // if (oldstakers.length < 1530)
-            await sleep(300)
-        // else 
-        // {
-        //     await sleep(3000)
-        //     await client.execute(
-        //         address,
-        //         newContractAddr,
-        //         { 
-        //             add_stakers: {
-        //                 stakers: list
-        //             }
-        //         },
-        //         'auto',
-        //         '',
-        //         []
-        //     );
-        // }
-        
-        
+        await sleep(200)
+        let cycle = 1
+        while (true) {
+            await sleep(3000)
+            console.log("cycle : " + cycle)
+            cycle ++
+            try {
+                await client.execute(
+                    address,
+                    newContractAddr,
+                    { 
+                        add_stakers: {
+                            stakers: stakerslist
+                        }
+                    },
+                    'auto',
+                    '',
+                    []
+                );
+                break;
+
+            } catch (error) {
+                continue;
+            }
+        }
     }
-
-    // for ( let staker in stakers) {
-        // console.log(JSON.stringify(staker))
-
-    // }
-    console.log(oldstakers.length)
-    fs.writeFileSync(`oldstakerlist.json`, JSON.stringify(oldstakers))
+ 
+    console.log(globalstakers.length)
+    fs.writeFileSync(`newstakerlist.json`, JSON.stringify(globalstakers, null, 4))
     
 
 }

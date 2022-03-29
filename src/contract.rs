@@ -389,7 +389,7 @@ pub fn execute_add_stakers(
     check_owner(&deps, &info)?;
 
     for staker in stakers {
-        STAKERS.save(deps.storage, staker.address.clone(), &(staker.amount, staker.reward, staker.last_time, staker.reward))?;
+        STAKERS.save(deps.storage, staker.address.clone(), &(staker.amount, staker.reward, staker.last_time, staker.sfot_reward))?;
     }
     
     Ok(Response::new().add_attribute("action", "add_stakers"))
@@ -453,6 +453,7 @@ pub fn execute_remove_all_stakers(
     
     for item in stakers.unwrap() {
         STAKERS.remove(deps.storage, item.address.clone());
+        UNSTAKING.remove(deps.storage, item.address.clone());
     }
     
     Ok(Response::new().add_attribute("action", "remove_all_stakers"))
@@ -544,7 +545,8 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         gfot_amount: cfg.gfot_amount,
         daily_fot_amount: cfg.daily_fot_amount,
         apy_prefix: cfg.apy_prefix,
-        reward_interval: cfg.reward_interval
+        reward_interval: cfg.reward_interval,
+        lock_days: cfg.lock_days
     })
 }
 
