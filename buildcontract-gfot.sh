@@ -211,7 +211,7 @@ FetchUnstake() {
 
 UpdateConfig() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_config":{"new_owner":"'$ADDR_WORKSHOP'"}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_config":{"new_owner":"'$ADDR_CEM'"}}' $WALLET $TXFLAG -y
 }
 
 UpdateConstants() {

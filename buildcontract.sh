@@ -79,7 +79,7 @@ GetContractAddress() {
 #Send initial tokens
 SendFot() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"36500000000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"18250000000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
 }
 
 SendGFot() {
@@ -134,7 +134,7 @@ UpdateConfig() {
 
 UpdateConstants() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_constants":{"daily_fot_amount":"300000000", "apy_prefix":"109500000", "reward_interval": 86400, "lock_days":14}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_constants":{"daily_fot_amount":"100000000000000", "apy_prefix":"109500000", "reward_interval": 86400, "lock_days":14, "enabled":true}}' $WALLET $TXFLAG -y
 }
 
 PrintConfig() {
@@ -145,6 +145,11 @@ PrintConfig() {
 PrintStaker() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
     junod query wasm contract-state smart $CONTRACT_GFOTSTAKING '{"staker":{"address":"'$ADDR_FORTIS'"}}' $NODECHAIN
+}
+
+PrintUnstaking() {
+    CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
+    junod query wasm contract-state smart $CONTRACT_GFOTSTAKING '{"unstaking":{"address":"'$ADDR_FORTIS'"}}' $NODECHAIN
 }
 
 PrintListStakers() {
