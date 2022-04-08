@@ -27,7 +27,17 @@ DENOM="ujuno"
 # BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
 
 #SFOT-GFOT 
-GFOT_ADDRESS="juno129xs226p0lqtdmkca7p27ajc6y8lv3xqgx9mzzyueazd8fzd8y6svnvu4q"
+# GFOT_ADDRESS="juno129xs226p0lqtdmkca7p27ajc6y8lv3xqgx9mzzyueazd8fzd8y6svnvu4q"
+# FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
+# BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
+
+#SFOT-JUNO 
+# GFOT_ADDRESS="juno1jsl0d3e3ncrzmkyz77kkkcdpu4r638l35jpzs7hmqg5g7ypwwsnsln5hvt"
+# FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
+# BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
+
+#SFOT-ATOM 
+GFOT_ADDRESS="juno10v5rhl4rth8ce77rld5m5wm79apxqjctkjquwx2qgrs9npvtjlqq5syjxw"
 FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
 BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
 
