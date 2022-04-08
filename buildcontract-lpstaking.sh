@@ -32,14 +32,14 @@ DENOM="ujuno"
 # BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
 
 #SFOT-JUNO 
-# GFOT_ADDRESS="juno1jsl0d3e3ncrzmkyz77kkkcdpu4r638l35jpzs7hmqg5g7ypwwsnsln5hvt"
-# FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
-# BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
-
-#SFOT-ATOM 
-GFOT_ADDRESS="juno10v5rhl4rth8ce77rld5m5wm79apxqjctkjquwx2qgrs9npvtjlqq5syjxw"
+GFOT_ADDRESS="juno1jsl0d3e3ncrzmkyz77kkkcdpu4r638l35jpzs7hmqg5g7ypwwsnsln5hvt"
 FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
 BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
+
+#SFOT-ATOM 
+# GFOT_ADDRESS="juno10v5rhl4rth8ce77rld5m5wm79apxqjctkjquwx2qgrs9npvtjlqq5syjxw"
+# FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
+# BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
 
 
 ##########################################################################################
@@ -94,7 +94,7 @@ GetContractAddress() {
 #Send initial tokens
 SendFot() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"10000000000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"9000000000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
 }
 
 SendGFot() {
@@ -149,7 +149,7 @@ UpdateConfig() {
 
 UpdateConstants() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_constants":{"daily_fot_amount":"100000000000000", "apy_prefix":"109500000", "reward_interval": 86400, "lock_days":14, "enabled":true}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_constants":{"daily_fot_amount":"50000000000000", "apy_prefix":"109500000", "reward_interval": 86400, "lock_days":14, "enabled":true}}' $WALLET $TXFLAG -y
 }
 
 PrintConfig() {
