@@ -48,6 +48,7 @@ pub fn instantiate(
         gfot_amount: Uint128::zero(),
         daily_fot_amount: msg.daily_fot_amount,
         apy_prefix: msg.apy_prefix,
+        delta_time: msg.delta_time,
         reward_interval: msg.reward_interval,
         lock_days: msg.lock_days,
         enabled: true
@@ -66,7 +67,7 @@ pub fn execute(
 ) -> Result<Response, ContractError> {
     match msg {
         ExecuteMsg::UpdateConfig { new_owner } => execute_update_config(deps, info, new_owner),
-        ExecuteMsg::UpdateConstants { daily_fot_amount, apy_prefix , reward_interval, lock_days, enabled} => execute_update_constants(deps, info, daily_fot_amount, apy_prefix, reward_interval, lock_days, enabled),
+        ExecuteMsg::UpdateConstants { daily_fot_amount, apy_prefix , reward_interval, delta_time, lock_days, enabled} => execute_update_constants(deps, info, daily_fot_amount, apy_prefix, reward_interval, delta_time, lock_days, enabled),
         ExecuteMsg::Receive(msg) => try_receive(deps, env, info, msg),
         ExecuteMsg::WithdrawFot {} => try_withdraw_fot(deps, env, info),
         ExecuteMsg::WithdrawGFot {} => try_withdraw_gfot(deps, env, info),
@@ -111,7 +112,7 @@ pub fn update_reward (
     STAKERS.save(storage, address.clone(), &(amount, reward, last_time, sfot_reward))?;
 
     let cfg = CONFIG.load(storage)?;
-    let delta = env.block.time.seconds() / cfg.reward_interval - last_time / cfg.reward_interval;
+    let delta = (env.block.time.seconds() + cfg.delta_time) / cfg.reward_interval - (last_time + cfg.delta_time) / cfg.reward_interval;
     
     if cfg.gfot_amount > Uint128::zero() && amount > Uint128::zero() && delta > 0 {
         reward += cfg.daily_fot_amount * Uint128::from(delta) * amount / cfg.gfot_amount;
@@ -357,6 +358,7 @@ pub fn execute_update_constants(
     daily_fot_amount: Uint128,
     apy_prefix: Uint128,
     reward_interval: u64,
+    delta_time: u64,
     lock_days: u64,
     enabled: bool
 ) -> Result<Response, ContractError> {
@@ -372,13 +374,13 @@ pub fn execute_update_constants(
         exists.apy_prefix = apy_prefix;
         exists.reward_interval = reward_interval;
         exists.lock_days = lock_days;
+        exists.delta_time = delta_time;
         exists.enabled = enabled;
         Ok(exists)
     })?;
 
     Ok(Response::new().add_attribute("action", "update_constants"))
 }
-
 
 pub fn execute_add_stakers(
     deps: DepsMut,
@@ -394,7 +396,6 @@ pub fn execute_add_stakers(
     
     Ok(Response::new().add_attribute("action", "add_stakers"))
 }
-
 
 pub fn execute_add_sfot_rewards(
     deps: DepsMut,
@@ -414,7 +415,6 @@ pub fn execute_add_sfot_rewards(
     
     Ok(Response::new().add_attribute("action", "add_sfot_rewards"))
 }
-
 
 pub fn execute_remove_staker(
     deps: DepsMut,
@@ -545,6 +545,7 @@ pub fn query_config(deps: Deps) -> StdResult<ConfigResponse> {
         gfot_amount: cfg.gfot_amount,
         daily_fot_amount: cfg.daily_fot_amount,
         apy_prefix: cfg.apy_prefix,
+        delta_time: cfg.delta_time,
         reward_interval: cfg.reward_interval,
         lock_days: cfg.lock_days
     })
