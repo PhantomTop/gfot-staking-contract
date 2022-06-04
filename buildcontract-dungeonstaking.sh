@@ -5,9 +5,9 @@ PARAM=$1
 ####################################    Constants    ##################################################
 
 #depends on mainnet or testnet
-NODE="--node https://rpc-juno.itastakers.com:443"
-CHAIN_ID=juno-1
-DENOM="ujuno"
+# NODE="--node https://rpc-juno.itastakers.com:443"
+# CHAIN_ID=juno-1
+# DENOM="ujuno"
 
 #FOT is reward token, GFOT is staking token, bfot is reserved(not using now)
 #FOR dungeon pool 3
@@ -16,19 +16,19 @@ DENOM="ujuno"
 # GFOT_ADDRESS="juno13kys802wnpzlyp57uyua3zaa0uvmkv0ytmcjqsax8ea3cysm2wyqsxnxn3"
 
 #For dungeon pool 8
-FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
-BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
-GFOT_ADDRESS="juno1f3tfeaz6qnq8r3n3xfsde0r7c20z7k9w0rpzustp7y6y2x3st2hs4yvqjn"
+# FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
+# BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
+# GFOT_ADDRESS="juno1f3tfeaz6qnq8r3n3xfsde0r7c20z7k9w0rpzustp7y6y2x3st2hs4yvqjn"
 
 ##########################################################################################
 
-# NODE="--node https://rpc.juno.giansalex.dev:443"
-# #NODE="--node https://rpc.uni.junomint.com:443"
-# CHAIN_ID=uni-2
-# DENOM="ujunox"
-# FOT_ADDRESS="juno1yqmcu5uw27mzkacputegtg46cx55ylwgcnatjy3mejxqdjsx3kmq5a280s"
-# BFOT_ADDRESS="juno1f69f4902tgkuthp26ghwjwta9e5ulqdelcmdxp8acevw89w0028sflaunv"
-# GFOT_ADDRESS="juno18hh4dflvfdcuklc9q4ghlr83fy5k4sdx6rgfzzwhdfqznsj4xjzqdsn5cc"
+NODE="--node https://rpc.juno.giansalex.dev:443"
+#NODE="--node https://rpc.uni.junomint.com:443"
+CHAIN_ID=uni-2
+DENOM="ujunox"
+FOT_ADDRESS="juno1yqmcu5uw27mzkacputegtg46cx55ylwgcnatjy3mejxqdjsx3kmq5a280s"
+BFOT_ADDRESS="juno1f69f4902tgkuthp26ghwjwta9e5ulqdelcmdxp8acevw89w0028sflaunv"
+GFOT_ADDRESS="juno18hh4dflvfdcuklc9q4ghlr83fy5k4sdx6rgfzzwhdfqznsj4xjzqdsn5cc"
 
 ##########################################################################################
 #not depends
@@ -169,7 +169,7 @@ GetContractAddress() {
 SendFot() {
     # When u receive FOT into fortis wallet, send the FOTs to the contract
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"250000000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $FOT_ADDRESS '{"send":{"amount":"45000000000000","contract":"'$CONTRACT_GFOTSTAKING'","msg":""}}' $WALLET $TXFLAG -y
 }
 
 SendGFot() {

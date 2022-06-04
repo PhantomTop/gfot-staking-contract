@@ -10,7 +10,7 @@ CHAIN_ID=juno-1
 DENOM="ujuno"
 FOT_ADDRESS="juno1xmpenz0ykxfy8rxr3yc3d4dtqq4dpas4zz3xl6sh873us3vajlpshzp69d"
 BFOT_ADDRESS="juno1vaeuky9hqacenay9nmuualugvv54tdhyt2wsvhnjasx9s946hhmqaq3kh7"
-GFOT_ADDRESS="juno10ynpq4wchr4ruu6mhrfh29495ep4cja5vjnkhz3j5lrgcsap9vtssyeekl"
+GFOT_ADDRESS="juno17c7zyezg3m8p2tf9hqgue9jhahvle70d59e8j9nmrvhw9anrpk8qxlrghx"
 
 ##########################################################################################
 
@@ -26,7 +26,7 @@ GFOT_ADDRESS="juno10ynpq4wchr4ruu6mhrfh29495ep4cja5vjnkhz3j5lrgcsap9vtssyeekl"
 #not depends
 NODECHAIN=" $NODE --chain-id $CHAIN_ID"
 TXFLAG=" $NODECHAIN --gas-prices 0.0025$DENOM --gas auto --gas-adjustment 1.3"
-WALLET="--from workshop"
+WALLET="--from fortis"
 
 WASMFILE="artifacts/gfotstaking.wasm"
 
@@ -37,6 +37,7 @@ FILE_CODE_ID="code.txt"
 ADDR_WORKSHOP="juno1htjut8n7jv736dhuqnad5mcydk6tf4ydeaan4s"
 ADDR_ACHILLES="juno15fg4zvl8xgj3txslr56ztnyspf3jc7n9j44vhz"
 ADDR_CEM="juno14u54rmpw78wux6vvrdx2vpdh998aaxxmrn6p7s"
+ADDR_CEM1="juno19h78e3t2kv2lkhp4tz39cva0c3g498qfqm7w92"
 ADDR_FORTIS="juno1mp7wa6sxcstk2kwvt5czkz3eel8rcd06j93pq5"
 ###################################################################################################
 ###################################################################################################
@@ -211,7 +212,7 @@ FetchUnstake() {
 
 UpdateConfig() {
     CONTRACT_GFOTSTAKING=$(cat $FILE_CONTRACT_ADDR)
-    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_config":{"new_owner":"'$ADDR_WORKSHOP'"}}' $WALLET $TXFLAG -y
+    junod tx wasm execute $CONTRACT_GFOTSTAKING '{"update_config":{"new_owner":"'$ADDR_CEM1'"}}' $WALLET $TXFLAG -y
 }
 
 UpdateConstants() {
